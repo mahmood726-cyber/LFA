@@ -1,0 +1,17 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^README\.Rmd$
+^LICENSE\.md$
+^data-raw$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^setup_cbamm\.R$
+^renv$
+^renv\.lock$
+^\.Rhistory$
+^\.RData$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^\.DS_Store$

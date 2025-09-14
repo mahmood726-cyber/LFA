@@ -1,0 +1,18 @@
+Package: cbamm
+Type: Package
+Title: Collaborative Bayesian Adaptive Meta-Analysis Methods
+Version: 0.1.0
+Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net", 
+                        role = c("aut", "cre"))
+Description: Provides tools for cumulative meta-analysis with stability assessment,
+    transport weights for generalizability, fast random-effects models, and
+    visualization functions for meta-analytic results.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.5.0)
+Imports: stats, graphics, utils, methods
+Suggests: metafor (>= 3.0.0), ggplot2 (>= 3.3.0), dplyr (>= 1.0.0), 
+             gridExtra, testthat (>= 3.0.0), knitr, rmarkdown
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
