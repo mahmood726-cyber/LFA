@@ -23,6 +23,18 @@ S3method(print,loo_analysis)
 S3method(print,nma)
 S3method(print,pet_peese)
 S3method(print,trim_fill)
+S3method(print,mvma)
+S3method(print,mvma_reg)
+S3method(print,mvma_test)
+S3method(print,rf_ma)
+S3method(print,nn_ma)
+S3method(print,outlier_detection)
+S3method(print,ensemble_ma)
+S3method(print,prediction_interval)
+S3method(print,prediction_model)
+S3method(print,parallel_bootstrap_ma)
+S3method(print,living_ma)
+S3method(print,sequential_ma)
 S3method(summary,cbamm)
 
 # Core Meta-Analysis
@@ -143,6 +155,61 @@ export(dose_response_binary)
 
 # Shiny Dashboard
 export(launch_meta_dashboard)
+
+# Multivariate Meta-Analysis
+export(multivariate_ma)
+export(multivariate_metareg)
+export(test_outcome_difference)
+export(plot_mvma)
+
+# Machine Learning Methods
+export(rf_meta_analysis)
+export(nn_meta_analysis)
+export(detect_outliers_ml)
+export(ensemble_meta_analysis)
+
+# Prediction Models
+export(prediction_interval)
+export(build_prediction_model)
+export(predict_new_study)
+export(plot_calibration)
+export(power_analysis_future)
+
+# Performance & Parallel
+export(parallel_bootstrap_ma)
+export(parallel_subgroup_analysis)
+export(vectorized_heterogeneity)
+export(cached_meta_analysis)
+export(batch_meta_analysis)
+export(optimized_loo_analysis)
+
+# Package Integration
+export(to_metafor)
+export(from_metafor)
+export(to_meta)
+export(metafor_diagnostics)
+export(import_revman)
+export(export_to_cma)
+export(bridge_to_metafor)
+export(compare_methods)
+export(auto_select_method)
+
+# Living Systematic Reviews
+export(init_living_ma)
+export(update_living_ma)
+export(sequential_meta_analysis)
+export(check_stopping_rules)
+export(compare_versions)
+export(plot_living_ma)
+export(setup_monitoring)
+
+# ggplot2 Visualizations
+export(gg_forest_plot)
+export(gg_funnel_plot)
+export(gg_labbe_plot)
+export(gg_cumulative_plot)
+export(gg_gosh_plot)
+export(gg_metareg_plot)
 
 # Imports
 import(graphics)

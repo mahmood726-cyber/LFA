@@ -1,18 +1,38 @@
 Package: cbamm
 Type: Package
-Title: Collaborative Bayesian Adaptive Meta-Analysis Methods
-Version: 0.1.0
-Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net", 
+Title: Comprehensive Bayesian and Advanced Meta-Analysis Methods
+Version: 1.0.0
+Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net",
                         role = c("aut", "cre"))
-Description: Provides tools for cumulative meta-analysis with stability assessment,
-    transport weights for generalizability, fast random-effects models, and
-    visualization functions for meta-analytic results.
+Description: A comprehensive toolkit for meta-analysis including traditional methods
+    (DerSimonian-Laird, REML), advanced techniques (network meta-analysis, Bayesian,
+    multivariate, IPD, dose-response), machine learning approaches (random forest,
+    neural networks), living systematic reviews, publication-quality visualizations,
+    and seamless integration with other meta-analysis packages. Designed for both
+    simple and complex meta-analytic needs with performance optimization and
+    parallel processing capabilities.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 3.5.0)
-Imports: stats, graphics, utils, methods
-Suggests: metafor (>= 3.0.0), ggplot2 (>= 3.3.0), dplyr (>= 1.0.0), 
-             gridExtra, testthat (>= 3.0.0), knitr, rmarkdown
+Imports:
+    stats,
+    graphics,
+    utils,
+    methods,
+    parallel,
+    digest
+Suggests:
+    metafor (>= 3.0.0),
+    ggplot2 (>= 3.3.0),
+    dplyr (>= 1.0.0),
+    gridExtra,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    shiny (>= 1.7.0),
+    DT,
+    meta
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
+VignetteBuilder: knitr

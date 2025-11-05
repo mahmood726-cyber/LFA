@@ -1,0 +1,6 @@
+name: Meta-Analysis Report
+description: >
+  Comprehensive template for reporting meta-analysis results with publication-quality output.
+  Includes sections for study characteristics, main analysis, heterogeneity assessment,
+  publication bias, sensitivity analysis, and more.
+create_dir: FALSE
