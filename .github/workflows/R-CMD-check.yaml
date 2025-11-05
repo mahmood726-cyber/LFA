@@ -92,7 +92,7 @@ jobs:
         with:
           extra-packages: |
             any::rcmdcheck
-          dependencies: '"hard"'
+          dependencies: NA
 
       - name: Install Suggests packages
         run: |
