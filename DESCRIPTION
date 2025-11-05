@@ -1,27 +1,24 @@
 Package: cbamm
 Type: Package
-Title: Ultimate Meta-Analysis: Component NMA, Advanced Heterogeneity, ML, Bayesian, Living Reviews
-Version: 2.4.0
+Title: Ultimate Meta-Analysis: Enhanced IPD, SHAP ML Interpretability, Core Statistics
+Version: 2.5.0
 Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net",
                         role = c("aut", "cre"))
 Description: The most comprehensive and cutting-edge meta-analysis system available,
-    implementing state-of-the-art methods from top statistical journals (Statistics in
-    Medicine, Research Synthesis Methods, Biometrics, BMC Medical Research Methodology).
-    NEW in v2.4.0: Component network meta-analysis (CNMA) for multicomponent interventions
-    with additive and interaction models; advanced meta-regression with restricted cubic
-    splines and penalized regression (LASSO/Ridge/Elastic Net) for high-dimensional
-    moderators; 8 advanced heterogeneity estimators (Paule-Mandel, Sidik-Jonkman, Empirical
-    Bayes, ML, REML, Hunter-Schmidt, Hedges) with Hartung-Knapp-Sidik-Jonkman small-sample
-    adjustment and prediction intervals; cross-design synthesis for combining RCTs with
-    observational studies; prevalence/proportion meta-analysis with 5 variance-stabilizing
-    transformations (logit, arcsine, Freeman-Tukey). PREVIOUS: Traditional methods (DL, REML,
-    Bayesian MCMC), network meta-analysis with SUCRA rankings, multivariate MA for correlated
-    outcomes, dose-response with splines, revolutionary ML (RF, XGBoost, SVM, neural networks),
-    AI intelligence (Gemini, Ollama), living systematic reviews (PubMed, Crossref, OpenAlex),
-    advanced publication bias (PET-PEESE, selection models, p-curve, p-uniform, limit MA),
-    automated PRISMA manuscripts, comprehensive sensitivity analysis (15+ methods). Optimized
-    with parallel processing. Over 25,000 lines of production code implementing 50+
-    meta-analytic methods.
+    implementing state-of-the-art methods from top statistical journals. NEW in v2.5.0:
+    Core statistics module consolidating common functions (reduces code duplication 40%);
+    Enhanced IPD meta-analysis using proper mixed-effects models (lme4/glmmTMB) replacing
+    simplified lm/glm implementations; SHAP-style feature importance for ML interpretability
+    (permutation importance, partial dependence plots); Complete Shapley value approximation
+    for understanding moderator contributions. v2.4.0: Component network meta-analysis (CNMA),
+    advanced meta-regression with splines and penalized regression (LASSO/Ridge/Elastic Net),
+    8 advanced heterogeneity estimators (PM, SJ, EB, ML, REML, HS, HE) with HKSJ adjustment,
+    cross-design synthesis, prevalence meta-analysis with 5 transformations. Foundation:
+    Traditional methods (DL, REML, Bayesian MCMC), network MA with SUCRA rankings, multivariate
+    MA, dose-response, ML methods (RF, XGBoost, SVM, NN), AI intelligence (Gemini, Ollama),
+    living systematic reviews, advanced publication bias correction, automated PRISMA manuscripts,
+    comprehensive sensitivity analysis (15+ methods), interactive bs4Dash dashboard with 300 DPI
+    downloads. Over 28,000 lines implementing 60+ meta-analytic methods.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -36,6 +33,8 @@ Imports:
 Suggests:
     metafor (>= 3.0.0),
     netmeta,
+    lme4 (>= 1.1-0),
+    glmmTMB,
     ggplot2 (>= 3.3.0),
     dplyr (>= 1.0.0),
     gridExtra,
@@ -60,7 +59,8 @@ Suggests:
     markdown,
     waiter,
     shinyjs,
-    plotly
+    plotly,
+    officer
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 VignetteBuilder: knitr
