@@ -32,15 +32,16 @@ Imports:
     digest
 Suggests:
     metafor (>= 3.0.0),
-    netmeta,
     lme4 (>= 1.1-0),
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Enhances:
+    netmeta,
     glmmTMB,
     ggplot2 (>= 3.3.0),
     dplyr (>= 1.0.0),
     gridExtra,
-    testthat (>= 3.0.0),
-    knitr,
-    rmarkdown,
     shiny (>= 1.7.0),
     bs4Dash,
     DT,
