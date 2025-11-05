@@ -197,6 +197,16 @@ create_meta_dashboard_app <- function() {
           icon = icon("tree")
         ),
         bs4SidebarMenuItem(
+          "Funnel & Bias Plots",
+          tabName = "funnel",
+          icon = icon("filter")
+        ),
+        bs4SidebarMenuItem(
+          "Sensitivity Analysis",
+          tabName = "sensitivity",
+          icon = icon("balance-scale")
+        ),
+        bs4SidebarMenuItem(
           "Publication Bias",
           tabName = "pubbias",
           icon = icon("exclamation-triangle")
@@ -392,7 +402,9 @@ create_meta_dashboard_app <- function() {
               solidHeader = TRUE,
               width = 8,
               elevation = 2,
-              plotOutput("quick_forest", height = "500px")
+              plotOutput("quick_forest", height = "500px"),
+              downloadButton("download_forest", "Download Forest Plot (300 DPI)",
+                            class = "btn-success")
             ),
             bs4Card(
               title = "Summary Statistics",
@@ -424,6 +436,54 @@ create_meta_dashboard_app <- function() {
           )
         ),
 
+        # ==== FUNNEL & BIAS PLOTS TAB ====
+        tabItem(
+          tabName = "funnel",
+          h2(icon("filter"), " Funnel & Publication Bias Plots"),
+
+          fluidRow(
+            bs4Card(
+              title = "Funnel Plot",
+              status = "primary",
+              solidHeader = TRUE,
+              width = 6,
+              elevation = 2,
+              plotOutput("quick_funnel", height = "500px"),
+              downloadButton("download_funnel", "Download Funnel Plot (300 DPI)",
+                            class = "btn-success")
+            ),
+            bs4Card(
+              title = "Publication Bias Analysis",
+              status = "warning",
+              solidHeader = TRUE,
+              width = 6,
+              elevation = 2,
+              plotOutput("quick_heterogeneity", height = "500px"),
+              downloadButton("download_bias_plots", "Download Bias Plots (300 DPI)",
+                            class = "btn-success")
+            )
+          )
+        ),
+
+        # ==== SENSITIVITY ANALYSIS TAB ====
+        tabItem(
+          tabName = "sensitivity_plots",
+          h2(icon("balance-scale"), " Sensitivity Analysis Plots"),
+
+          fluidRow(
+            bs4Card(
+              title = "Sensitivity Analysis Results",
+              status = "info",
+              solidHeader = TRUE,
+              width = 12,
+              elevation = 2,
+              p("Leave-one-out, influence diagnostics, cumulative meta-analysis, and effect distribution."),
+              downloadButton("download_sensitivity", "Download Sensitivity Plots (300 DPI)",
+                            class = "btn-success btn-lg")
+            )
+          )
+        ),
+
         # ==== COMPREHENSIVE DASHBOARD TAB ====
         tabItem(
           tabName = "dashboard",
@@ -438,8 +498,12 @@ create_meta_dashboard_app <- function() {
               elevation = 2,
               actionButton("generate_dashboard", "Generate Comprehensive Dashboard",
                           class = "btn-primary btn-lg", icon = icon("chart-line")),
-              downloadButton("download_dashboard", "Download Dashboard PDF",
-                            class = "btn-success")
+              downloadButton("download_dashboard", "Download Dashboard (300 DPI PNG)",
+                            class = "btn-success"),
+              downloadButton("download_report_pdf", "Download Full Report (PDF)",
+                            class = "btn-info"),
+              downloadButton("download_all_zip", "Download All Results (ZIP)",
+                            class = "btn-warning")
             )
           ),
 
@@ -705,8 +769,8 @@ create_meta_dashboard_app <- function() {
 
     # FOOTER
     footer = bs4DashFooter(
-      left = "Ultimate Meta-Analysis System v2.0.0+",
-      right = "Powered by LFA/cbamm • © 2024"
+      left = "Ultimate Meta-Analysis System v2.4.0",
+      right = "Powered by LFA/cbamm • © 2025 • All downloads at 300 DPI"
     )
   ) # End bs4DashPage
 
@@ -1087,8 +1151,9 @@ create_meta_dashboard_app <- function() {
       })
     })
 
-    # ========== DOWNLOADS ==========
+    # ========== DOWNLOADS - HIGH RESOLUTION ==========
 
+    # Download template
     output$download_template <- downloadHandler(
       filename = "meta_analysis_template.csv",
       content = function(file) {
@@ -1101,6 +1166,382 @@ create_meta_dashboard_app <- function() {
           quality = c("High", "Moderate", "High")
         )
         write.csv(template, file, row.names = FALSE)
+      }
+    )
+
+    # Download comprehensive dashboard plot - HIGHEST RESOLUTION
+    output$download_dashboard <- downloadHandler(
+      filename = function() {
+        paste0("meta_analysis_dashboard_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # 300 DPI for publication quality
+        # 16 x 12 inches = 4800 x 3600 pixels at 300 DPI
+        png(file, width = 4800, height = 3600, res = 300, type = "cairo")
+
+        tryCatch({
+          comprehensive_dashboard(rv$data, rv$result)
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download forest plot - HIGHEST RESOLUTION
+    output$download_forest <- downloadHandler(
+      filename = function() {
+        paste0("forest_plot_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # 300 DPI, 12 x 10 inches
+        png(file, width = 3600, height = 3000, res = 300, type = "cairo")
+
+        tryCatch({
+          forest_plot_enhanced(rv$data, rv$result, title = "Forest Plot - Meta-Analysis")
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download funnel plot - HIGHEST RESOLUTION
+    output$download_funnel <- downloadHandler(
+      filename = function() {
+        paste0("funnel_plot_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # 300 DPI, 10 x 10 inches (square for funnel plot)
+        png(file, width = 3000, height = 3000, res = 300, type = "cairo")
+
+        tryCatch({
+          contour_funnel_plot(rv$data, rv$result)
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download publication bias plots - HIGHEST RESOLUTION
+    output$download_bias_plots <- downloadHandler(
+      filename = function() {
+        paste0("publication_bias_plots_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # 300 DPI, 16 x 12 inches for multi-panel
+        png(file, width = 4800, height = 3600, res = 300, type = "cairo")
+
+        tryCatch({
+          par(mfrow = c(2, 2))
+
+          # Funnel plot
+          contour_funnel_plot(rv$data, rv$result)
+
+          # Egger's test
+          if (!is.null(rv$analysis_results$egger)) {
+            plot(1/rv$data$se, rv$data$effect,
+                 xlab = "Precision (1/SE)", ylab = "Effect Size",
+                 main = "Egger's Test Regression",
+                 pch = 19, col = rgb(0, 0, 1, 0.6))
+            abline(rv$analysis_results$egger, col = "red", lwd = 2)
+          }
+
+          # Trim and fill
+          if (!is.null(rv$analysis_results$trim_fill)) {
+            funnel_plot(rv$data, main = "Trim-and-Fill Analysis")
+          }
+
+          # P-curve
+          if (nrow(rv$data) >= 10) {
+            p_vals <- 2 * pnorm(-abs(rv$data$effect / rv$data$se))
+            hist(p_vals[p_vals < 0.05], breaks = 20,
+                 main = "P-Curve (Significant Results)",
+                 xlab = "P-value", col = "skyblue", border = "white")
+          }
+
+          par(mfrow = c(1, 1))
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download sensitivity plots - HIGHEST RESOLUTION
+    output$download_sensitivity <- downloadHandler(
+      filename = function() {
+        paste0("sensitivity_analysis_", Sys.Date(), ".png")
+      },
+      content = function(file) {
+        req(rv$data, rv$analysis_results$loo)
+
+        # 300 DPI, 14 x 10 inches
+        png(file, width = 4200, height = 3000, res = 300, type = "cairo")
+
+        tryCatch({
+          par(mfrow = c(2, 2))
+
+          # Leave-one-out
+          loo <- rv$analysis_results$loo
+          plot(1:nrow(loo), loo$estimate,
+               ylim = range(c(loo$ci_lower, loo$ci_upper)),
+               xlab = "Study Removed", ylab = "Pooled Effect",
+               main = "Leave-One-Out Analysis",
+               pch = 19, col = rgb(0, 0, 1, 0.6))
+          segments(1:nrow(loo), loo$ci_lower, 1:nrow(loo), loo$ci_upper,
+                   col = rgb(0, 0, 1, 0.3))
+          abline(h = rv$result$estimate, col = "red", lty = 2, lwd = 2)
+
+          # Influence diagnostics
+          if (!is.null(rv$analysis_results$influence)) {
+            inf <- rv$analysis_results$influence
+            plot(inf$dffits, main = "DFFITS", ylab = "DFFITS",
+                 xlab = "Study", pch = 19, col = rgb(0, 0, 1, 0.6))
+            abline(h = c(-2, 2), col = "red", lty = 2)
+          }
+
+          # Cumulative meta-analysis
+          if (!is.null(rv$analysis_results$cumulative)) {
+            cum <- rv$analysis_results$cumulative
+            plot(1:nrow(cum), cum$estimate,
+                 ylim = range(c(cum$ci_lower, cum$ci_upper)),
+                 type = "b", pch = 19, col = "blue",
+                 xlab = "Cumulative Studies", ylab = "Pooled Effect",
+                 main = "Cumulative Meta-Analysis")
+            lines(1:nrow(cum), cum$ci_lower, lty = 2, col = "gray")
+            lines(1:nrow(cum), cum$ci_upper, lty = 2, col = "gray")
+          }
+
+          # Effect size distribution
+          hist(rv$data$effect, breaks = 15, col = "skyblue",
+               main = "Effect Size Distribution",
+               xlab = "Effect Size", border = "white")
+          abline(v = rv$result$estimate, col = "red", lwd = 2)
+          abline(v = 0, col = "black", lty = 2)
+
+          par(mfrow = c(1, 1))
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download Methods section - TXT
+    output$download_methods <- downloadHandler(
+      filename = function() {
+        paste0("methods_section_", Sys.Date(), ".txt")
+      },
+      content = function(file) {
+        req(rv$methods_text)
+        writeLines(rv$methods_text, file)
+      }
+    )
+
+    # Download Methods section - DOCX
+    output$download_methods_docx <- downloadHandler(
+      filename = function() {
+        paste0("methods_section_", Sys.Date(), ".docx")
+      },
+      content = function(file) {
+        req(rv$methods_text)
+
+        if (requireNamespace("officer", quietly = TRUE)) {
+          # Create Word document
+          doc <- officer::read_docx()
+          doc <- officer::body_add_par(doc, "METHODS", style = "heading 1")
+
+          # Split by paragraphs
+          paragraphs <- strsplit(rv$methods_text, "\n\n")[[1]]
+          for (p in paragraphs) {
+            doc <- officer::body_add_par(doc, p)
+          }
+
+          print(doc, target = file)
+        } else {
+          # Fallback to plain text
+          writeLines(rv$methods_text, file)
+        }
+      }
+    )
+
+    # Download Results section - TXT
+    output$download_results <- downloadHandler(
+      filename = function() {
+        paste0("results_section_", Sys.Date(), ".txt")
+      },
+      content = function(file) {
+        req(rv$results_text)
+        writeLines(rv$results_text, file)
+      }
+    )
+
+    # Download Results section - DOCX
+    output$download_results_docx <- downloadHandler(
+      filename = function() {
+        paste0("results_section_", Sys.Date(), ".docx")
+      },
+      content = function(file) {
+        req(rv$results_text)
+
+        if (requireNamespace("officer", quietly = TRUE)) {
+          # Create Word document
+          doc <- officer::read_docx()
+          doc <- officer::body_add_par(doc, "RESULTS", style = "heading 1")
+
+          # Split by paragraphs
+          paragraphs <- strsplit(rv$results_text, "\n\n")[[1]]
+          for (p in paragraphs) {
+            doc <- officer::body_add_par(doc, p)
+          }
+
+          print(doc, target = file)
+        } else {
+          # Fallback to plain text
+          writeLines(rv$results_text, file)
+        }
+      }
+    )
+
+    # Download complete analysis report - PDF
+    output$download_report_pdf <- downloadHandler(
+      filename = function() {
+        paste0("meta_analysis_report_", Sys.Date(), ".pdf")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # Create multi-page PDF report
+        pdf(file, width = 11, height = 8.5)
+
+        tryCatch({
+          # Page 1: Summary
+          plot.new()
+          text(0.5, 0.9, "META-ANALYSIS REPORT", cex = 2, font = 2)
+          text(0.5, 0.8, paste("Generated:", Sys.Date()), cex = 1.2)
+          text(0.5, 0.6, sprintf("Studies: %d", rv$result$k), cex = 1.5)
+          text(0.5, 0.5, sprintf("Pooled Effect: %.3f (95%% CI: %.3f, %.3f)",
+                                  rv$result$estimate, rv$result$ci_lower, rv$result$ci_upper),
+               cex = 1.5)
+          text(0.5, 0.4, sprintf("I² = %.1f%%", rv$result$I2), cex = 1.5)
+
+          # Page 2: Forest plot
+          forest_plot_enhanced(rv$data, rv$result, title = "Forest Plot")
+
+          # Page 3: Funnel plot
+          contour_funnel_plot(rv$data, rv$result)
+
+          # Page 4: Sensitivity analyses
+          if (!is.null(rv$analysis_results$loo)) {
+            par(mfrow = c(2, 2))
+
+            loo <- rv$analysis_results$loo
+            plot(1:nrow(loo), loo$estimate,
+                 ylim = range(c(loo$ci_lower, loo$ci_upper)),
+                 main = "Leave-One-Out", pch = 19)
+            segments(1:nrow(loo), loo$ci_lower, 1:nrow(loo), loo$ci_upper)
+            abline(h = rv$result$estimate, col = "red", lty = 2)
+
+            if (!is.null(rv$analysis_results$cumulative)) {
+              cum <- rv$analysis_results$cumulative
+              plot(1:nrow(cum), cum$estimate, type = "b",
+                   main = "Cumulative Analysis", pch = 19)
+              lines(1:nrow(cum), cum$ci_lower, lty = 2)
+              lines(1:nrow(cum), cum$ci_upper, lty = 2)
+            }
+
+            hist(rv$data$effect, main = "Effect Distribution", col = "skyblue")
+            abline(v = rv$result$estimate, col = "red", lwd = 2)
+
+            par(mfrow = c(1, 1))
+          }
+
+        }, finally = {
+          dev.off()
+        })
+      }
+    )
+
+    # Download all results as ZIP
+    output$download_all_zip <- downloadHandler(
+      filename = function() {
+        paste0("meta_analysis_complete_", Sys.Date(), ".zip")
+      },
+      content = function(file) {
+        req(rv$data, rv$result)
+
+        # Create temp directory
+        temp_dir <- tempdir()
+        zip_dir <- file.path(temp_dir, "meta_analysis_output")
+        dir.create(zip_dir, showWarnings = FALSE)
+
+        tryCatch({
+          # Save data
+          write.csv(rv$data, file.path(zip_dir, "data.csv"), row.names = FALSE)
+
+          # Save plots at 300 DPI
+          png(file.path(zip_dir, "forest_plot.png"),
+              width = 3600, height = 3000, res = 300, type = "cairo")
+          forest_plot_enhanced(rv$data, rv$result)
+          dev.off()
+
+          png(file.path(zip_dir, "funnel_plot.png"),
+              width = 3000, height = 3000, res = 300, type = "cairo")
+          contour_funnel_plot(rv$data, rv$result)
+          dev.off()
+
+          png(file.path(zip_dir, "dashboard.png"),
+              width = 4800, height = 3600, res = 300, type = "cairo")
+          comprehensive_dashboard(rv$data, rv$result)
+          dev.off()
+
+          # Save text sections
+          if (!is.null(rv$methods_text)) {
+            writeLines(rv$methods_text, file.path(zip_dir, "methods.txt"))
+          }
+
+          if (!is.null(rv$results_text)) {
+            writeLines(rv$results_text, file.path(zip_dir, "results.txt"))
+          }
+
+          # Save summary
+          summary_text <- sprintf(
+            "META-ANALYSIS SUMMARY\n\n" +
+            "Generated: %s\n\n" +
+            "Studies: %d\n" +
+            "Pooled Effect: %.3f (95%% CI: %.3f, %.3f)\n" +
+            "P-value: %.4f\n" +
+            "I² Heterogeneity: %.1f%%\n" +
+            "τ²: %.4f\n" +
+            "Q-statistic: %.2f (df=%d, p=%.4f)\n",
+            Sys.Date(),
+            rv$result$k,
+            rv$result$estimate,
+            rv$result$ci_lower,
+            rv$result$ci_upper,
+            rv$result$p_value,
+            rv$result$I2,
+            rv$result$tau2,
+            rv$result$Q,
+            rv$result$Q_df,
+            rv$result$Q_pval
+          )
+          writeLines(summary_text, file.path(zip_dir, "summary.txt"))
+
+          # Create ZIP
+          current_dir <- getwd()
+          setwd(temp_dir)
+          zip(zipfile = file, files = basename(zip_dir))
+          setwd(current_dir)
+
+        }, error = function(e) {
+          showNotification(paste("Error creating ZIP:", e$message), type = "error")
+        })
       }
     )
 
