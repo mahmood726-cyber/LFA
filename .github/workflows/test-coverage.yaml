@@ -5,7 +5,7 @@ name: test-coverage
 
 on:
   push:
-    branches: [main, master, develop, claude/repo-review-improvements-011CUpqXNxQuCtJqydP1bYvN]
+    branches: [main, master, develop, claude/normalize-line-endings-011CUqQ8ThrrM5uygs4pUcwR]
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:

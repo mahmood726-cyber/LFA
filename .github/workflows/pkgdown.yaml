@@ -5,7 +5,7 @@ name: pkgdown
 
 on:
   push:
-    branches: [main, master, claude/repo-review-improvements-011CUpqXNxQuCtJqydP1bYvN]
+    branches: [main, master, claude/normalize-line-endings-011CUqQ8ThrrM5uygs4pUcwR]
   pull_request:
     branches: [main, master]
   release:
