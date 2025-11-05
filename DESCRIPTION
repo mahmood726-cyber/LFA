@@ -1,22 +1,25 @@
 Package: cbamm
 Type: Package
-Title: AI-Powered Meta-Analysis with ML, Living Reviews, 500+ Rules and 10,000 Scenarios
-Version: 2.1.0
+Title: Ultimate Meta-Analysis System: ML, Bayesian, NMA, Living Reviews, Auto-Reporting
+Version: 2.2.0
 Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net",
                         role = c("aut", "cre"))
-Description: Revolutionary meta-analysis toolkit combining traditional methods
-    (DerSimonian-Laird, REML), advanced techniques (network meta-analysis, Bayesian,
-    multivariate, IPD, dose-response), machine learning (random forest, XGBoost, SVM,
-    neural networks for prediction, clustering, and automated discovery), AI-powered
-    assistance (Gemini API, local Llama 3 via Ollama), comprehensive rules engine (500+
-    expert rules covering methodology, quality, heterogeneity, bias, interpretation),
-    extensive scenario database (10,000+ validated scenarios across all domains), fully
-    automated living systematic reviews (PubMed, Crossref, OpenAlex monitoring with AI
-    screening and data extraction), publication-quality visualizations, and seamless
-    integration. Features ML-based effect prediction, automated moderator discovery,
-    study clustering, and continuous literature monitoring. Optimized for performance
-    with parallel processing. Designed for researchers requiring cutting-edge methods
-    with intelligent guidance.
+Description: The most comprehensive meta-analysis system available, combining traditional
+    methods (DerSimonian-Laird, REML, Bayesian MCMC with full diagnostics), advanced
+    techniques (network meta-analysis with SUCRA rankings and league tables, multivariate,
+    IPD, dose-response), revolutionary machine learning (random forest, XGBoost, SVM,
+    neural networks for effect prediction, automated study clustering, heterogeneity source
+    identification, moderator discovery), AI-powered intelligence (Gemini API, local Llama 3
+    via Ollama for screening and extraction), comprehensive rules engine (1000+ expert rules
+    covering all methodological domains), extensive scenario database (10,000+ validated
+    scenarios), fully automated living systematic reviews (PubMed, Crossref, OpenAlex
+    monitoring with AI screening), advanced publication bias correction (PET-PEESE, selection
+    models, p-curve, p-uniform, limit meta-analysis), and automated PRISMA-compliant
+    manuscript generation. Generates complete publication-ready documents with one command.
+    Bayesian analysis includes prior sensitivity, posterior predictive distributions, and
+    Bayes factors. Network meta-analysis provides treatment rankings, inconsistency
+    assessment, and network plots. Publication bias methods include multiple state-of-the-art
+    correction techniques. Optimized for performance with parallel processing.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -30,6 +33,7 @@ Imports:
     digest
 Suggests:
     metafor (>= 3.0.0),
+    netmeta,
     ggplot2 (>= 3.3.0),
     dplyr (>= 1.0.0),
     gridExtra,

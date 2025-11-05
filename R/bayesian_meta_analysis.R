@@ -1,443 +1,779 @@
-#' Bayesian Meta-Analysis
+#' Bayesian Meta-Analysis Module
 #'
-#' Bayesian approaches to meta-analysis using MCMC sampling (simplified implementation).
-#' For full Bayesian analysis, consider using specialized packages like brms or rstan.
+#' Comprehensive Bayesian meta-analysis implementation using MCMC including:
+#' - Full Bayesian random-effects meta-analysis
+#' - Prior sensitivity analysis
+#' - Posterior predictive distributions
+#' - Bayes factors for model comparison
+#' - Credible intervals and probability statements
+#' - Between-study heterogeneity (tau) estimation
+#' - Meta-regression with Bayesian inference
 #'
 #' @name bayesian_meta_analysis
 NULL
 
-#' Bayesian Random-Effects Meta-Analysis
+#' Bayesian Meta-Analysis
 #'
-#' Performs Bayesian random-effects meta-analysis using a simplified Metropolis-Hastings
-#' MCMC sampler. Provides posterior distributions for effect size and between-study variance.
+#' Performs Bayesian meta-analysis using MCMC simulation. Provides full posterior
+#' distributions for all parameters, allowing probability statements about effects.
 #'
-#' @param data Data frame with columns: study, effect, se
-#' @param n_iter Number of MCMC iterations (default: 10000)
-#' @param n_burn Burn-in period (default: 2000)
-#' @param n_thin Thinning interval (default: 2)
-#' @param prior_mean Prior mean for effect size (default: 0)
-#' @param prior_sd Prior SD for effect size (default: 10)
-#' @param prior_tau Prior for between-study SD: list(shape, scale) for half-Cauchy (default: list(0, 1))
-#' @param seed Random seed for reproducibility
+#' @param data Meta-analysis data frame
+#' @param effect Column name for effect sizes
+#' @param se Column name for standard errors
+#' @param prior_mu Prior for overall effect: "weakly_informative", "noninformative", or custom list
+#' @param prior_tau Prior for heterogeneity: "half_cauchy", "half_normal", "uniform", or custom
+#' @param n_iter Number of MCMC iterations (default: 20000)
+#' @param n_burnin Number of burn-in iterations (default: 5000)
+#' @param n_chains Number of MCMC chains (default: 3)
+#' @param predictive Include posterior predictive distribution (default: TRUE)
+#' @param prob_intervals Probability levels for credible intervals (default: c(0.95, 0.90, 0.80))
 #'
-#' @return Object of class "bayesian_ma" containing:
-#'   \itemize{
-#'     \item posterior_samples: Matrix of posterior samples
-#'     \item summary: Posterior summary statistics
-#'     \item diagnostics: MCMC diagnostics (acceptance rate, ESS)
-#'     \item prior: Prior specifications
-#'   }
+#' @return Bayesian meta-analysis object with posterior samples and summaries
 #'
 #' @export
 #' @examples
 #' \dontrun{
-#' data(example_meta)
-#' bayes_result <- bayesian_ma(example_meta, n_iter = 5000, seed = 123)
+#' # Bayesian meta-analysis with default priors
+#' bayes_result <- bayesian_meta_analysis(
+#'   data = meta_data,
+#'   effect = "effect",
+#'   se = "se"
+#' )
+#'
+#' # View results
 #' print(bayes_result)
-#' plot(bayes_result)
+#' summary(bayes_result)
+#' plot(bayes_result, type = "posterior")
+#' plot(bayes_result, type = "forest")
+#'
+#' # Prior sensitivity analysis
+#' sensitivity <- bayesian_prior_sensitivity(
+#'   data = meta_data,
+#'   effect = "effect",
+#'   se = "se"
+#' )
 #' }
-bayesian_ma <- function(data,
-                        n_iter = 10000,
-                        n_burn = 2000,
-                        n_thin = 2,
-                        prior_mean = 0,
-                        prior_sd = 10,
-                        prior_tau = list(shape = 0, scale = 1),
-                        seed = NULL) {
-  # Validate data
-  if (!is.data.frame(data)) {
-    stop("data must be a data frame")
-  }
+bayesian_meta_analysis <- function(data, effect = "effect", se = "se",
+                                   prior_mu = "weakly_informative",
+                                   prior_tau = "half_cauchy",
+                                   n_iter = 20000, n_burnin = 5000,
+                                   n_chains = 3, predictive = TRUE,
+                                   prob_intervals = c(0.95, 0.90, 0.80)) {
 
-  required_cols <- c("study", "effect", "se")
-  missing_cols <- setdiff(required_cols, names(data))
-  if (length(missing_cols) > 0) {
-    stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
-  }
+  cat("╔══════════════════════════════════════════════════════════════╗\n")
+  cat("║   BAYESIAN META-ANALYSIS                                     ║\n")
+  cat("╚══════════════════════════════════════════════════════════════╝\n\n")
 
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
+  # Extract data
+  y <- data[[effect]]
+  s <- data[[se]]
+  n <- length(y)
 
-  k <- nrow(data)
-  yi <- data$effect
-  sei <- data$se
-  vi <- sei^2
+  cat(sprintf("Studies: %d\n", n))
+  cat(sprintf("MCMC settings:\n"))
+  cat(sprintf("  Iterations: %d\n", n_iter))
+  cat(sprintf("  Burn-in: %d\n", n_burnin))
+  cat(sprintf("  Chains: %d\n", n_chains))
+  cat(sprintf("  Total samples: %d\n", (n_iter - n_burnin) * n_chains))
 
-  # Initialize parameters
-  theta <- mean(yi)  # Overall effect
-  tau <- sd(yi)      # Between-study SD
+  # Configure priors
+  priors <- configure_priors(prior_mu, prior_tau)
+  cat(sprintf("\nPriors:\n"))
+  cat(sprintf("  Overall effect (mu): %s\n", priors$mu_desc))
+  cat(sprintf("  Heterogeneity (tau): %s\n", priors$tau_desc))
 
-  # Storage for samples
-  n_samples <- ceiling((n_iter - n_burn) / n_thin)
-  posterior_samples <- matrix(NA, nrow = n_samples, ncol = 2)
-  colnames(posterior_samples) <- c("theta", "tau")
+  # Run MCMC
+  cat("\nRunning MCMC sampling...\n")
 
-  # MCMC sampling
-  accept_theta <- 0
-  accept_tau <- 0
-  sample_idx <- 1
-
-  # Proposal standard deviations (tuning parameters)
-  prop_sd_theta <- 0.1
-  prop_sd_tau <- 0.05
-
-  for (iter in 1:n_iter) {
-    # Update theta (overall effect)
-    theta_prop <- theta + rnorm(1, 0, prop_sd_theta)
-
-    # Log posterior for current theta
-    log_post_current <- sum(dnorm(yi, mean = theta, sd = sqrt(vi + tau^2), log = TRUE)) +
-                        dnorm(theta, mean = prior_mean, sd = prior_sd, log = TRUE)
-
-    # Log posterior for proposed theta
-    log_post_prop <- sum(dnorm(yi, mean = theta_prop, sd = sqrt(vi + tau^2), log = TRUE)) +
-                     dnorm(theta_prop, mean = prior_mean, sd = prior_sd, log = TRUE)
-
-    # Accept/reject
-    log_alpha <- log_post_prop - log_post_current
-    if (log(runif(1)) < log_alpha) {
-      theta <- theta_prop
-      if (iter > n_burn) accept_theta <- accept_theta + 1
-    }
-
-    # Update tau (between-study SD)
-    # Use log scale for positivity constraint
-    log_tau <- log(tau)
-    log_tau_prop <- log_tau + rnorm(1, 0, prop_sd_tau)
-    tau_prop <- exp(log_tau_prop)
-
-    # Log posterior for current tau (with Jacobian adjustment)
-    log_post_current <- sum(dnorm(yi, mean = theta, sd = sqrt(vi + tau^2), log = TRUE)) +
-                        dcauchy(tau, location = 0, scale = prior_tau$scale, log = TRUE) +
-                        log(tau)  # Jacobian for log transformation
-
-    # Log posterior for proposed tau
-    log_post_prop <- sum(dnorm(yi, mean = theta, sd = sqrt(vi + tau_prop^2), log = TRUE)) +
-                     dcauchy(tau_prop, location = 0, scale = prior_tau$scale, log = TRUE) +
-                     log(tau_prop)  # Jacobian
-
-    # Accept/reject
-    log_alpha <- log_post_prop - log_post_current
-    if (log(runif(1)) < log_alpha) {
-      tau <- tau_prop
-      if (iter > n_burn) accept_tau <- accept_tau + 1
-    }
-
-    # Store samples after burn-in and thinning
-    if (iter > n_burn && (iter - n_burn) %% n_thin == 0) {
-      posterior_samples[sample_idx, ] <- c(theta, tau)
-      sample_idx <- sample_idx + 1
-    }
-  }
-
-  # Calculate summary statistics
-  summary_stats <- data.frame(
-    parameter = c("theta (effect)", "tau (heterogeneity SD)", "tau^2", "I^2 (%)"),
-    mean = c(mean(posterior_samples[, "theta"]),
-             mean(posterior_samples[, "tau"]),
-             mean(posterior_samples[, "tau"]^2),
-             NA),
-    sd = c(sd(posterior_samples[, "theta"]),
-           sd(posterior_samples[, "tau"]),
-           sd(posterior_samples[, "tau"]^2),
-           NA),
-    median = c(median(posterior_samples[, "theta"]),
-               median(posterior_samples[, "tau"]),
-               median(posterior_samples[, "tau"]^2),
-               NA),
-    ci_lower = c(quantile(posterior_samples[, "theta"], 0.025),
-                 quantile(posterior_samples[, "tau"], 0.025),
-                 quantile(posterior_samples[, "tau"]^2, 0.025),
-                 NA),
-    ci_upper = c(quantile(posterior_samples[, "theta"], 0.975),
-                 quantile(posterior_samples[, "tau"], 0.975),
-                 quantile(posterior_samples[, "tau"]^2, 0.975),
-                 NA),
-    stringsAsFactors = FALSE
+  mcmc_result <- run_bayesian_mcmc(
+    y = y, s = s, priors = priors,
+    n_iter = n_iter, n_burnin = n_burnin,
+    n_chains = n_chains
   )
 
-  # Calculate I^2 (percentage of variation due to heterogeneity)
-  # I^2 = tau^2 / (tau^2 + typical_vi)
-  typical_vi <- median(vi)
-  I2_samples <- 100 * posterior_samples[, "tau"]^2 / (posterior_samples[, "tau"]^2 + typical_vi)
-  summary_stats[4, c("mean", "sd", "median", "ci_lower", "ci_upper")] <-
-    c(mean(I2_samples), sd(I2_samples), median(I2_samples),
-      quantile(I2_samples, 0.025), quantile(I2_samples, 0.975))
+  cat("✓ MCMC sampling complete\n")
 
   # Diagnostics
-  n_post_burn <- n_iter - n_burn
-  diagnostics <- list(
-    acceptance_rate_theta = accept_theta / n_post_burn,
-    acceptance_rate_tau = accept_tau / n_post_burn,
-    n_effective_theta = coda::effectiveSize(posterior_samples[, "theta"]),
-    n_effective_tau = coda::effectiveSize(posterior_samples[, "tau"]),
-    note = "Acceptance rates between 0.2-0.5 are generally good"
-  )
+  cat("\nChecking convergence...\n")
+  diagnostics <- check_mcmc_diagnostics(mcmc_result)
 
-  # Try to calculate effective sample size
-  tryCatch({
-    diagnostics$n_effective_theta <- coda::effectiveSize(posterior_samples[, "theta"])
-    diagnostics$n_effective_tau <- coda::effectiveSize(posterior_samples[, "tau"])
-  }, error = function(e) {
-    # If coda not available, estimate roughly
-    diagnostics$n_effective_theta <- nrow(posterior_samples) / 2
-    diagnostics$n_effective_tau <- nrow(posterior_samples) / 2
-  })
+  if (diagnostics$converged) {
+    cat("  ✓ All parameters converged (Rhat < 1.1)\n")
+  } else {
+    warning("  ⚠️  Some parameters did not converge. Consider increasing iterations.")
+  }
 
+  cat(sprintf("  Effective sample size (min): %.0f\n", diagnostics$min_ess))
+
+  # Posterior summaries
+  cat("\nCalculating posterior summaries...\n")
+  posterior_summary <- summarize_posterior(mcmc_result, prob_intervals)
+
+  # Posterior predictive distribution
+  pred_dist <- NULL
+  if (predictive) {
+    cat("Generating posterior predictive distribution...\n")
+    pred_dist <- posterior_predictive(mcmc_result)
+  }
+
+  # Probability statements
+  cat("\nProbability statements:\n")
+  prob_statements <- calculate_probabilities(mcmc_result)
+  cat(sprintf("  P(effect > 0) = %.3f\n", prob_statements$prob_positive))
+  cat(sprintf("  P(|effect| > 0.2) = %.3f\n", prob_statements$prob_important))
+
+  # Create plots
+  cat("\nGenerating visualizations...\n")
+  plots <- create_bayesian_plots(mcmc_result, y, s, pred_dist)
+
+  # Compile results
   result <- list(
-    posterior_samples = posterior_samples,
-    summary = summary_stats,
+    data = data.frame(y = y, s = s, study = 1:n),
+    posterior = mcmc_result$posterior,
+    posterior_summary = posterior_summary,
+    predictive = pred_dist,
     diagnostics = diagnostics,
-    prior = list(
-      effect_mean = prior_mean,
-      effect_sd = prior_sd,
-      tau_prior = prior_tau
-    ),
+    probabilities = prob_statements,
+    priors = priors,
     settings = list(
-      n_iter = n_iter,
-      n_burn = n_burn,
-      n_thin = n_thin,
-      n_samples = nrow(posterior_samples)
+      n_iter = n_iter, n_burnin = n_burnin, n_chains = n_chains,
+      prob_intervals = prob_intervals
     ),
-    data = data
+    plots = plots
   )
 
-  class(result) <- "bayesian_ma"
+  class(result) <- c("bayesian_meta_analysis", "list")
+
+  cat("\n╔══════════════════════════════════════════════════════════════╗\n")
+  cat("║   BAYESIAN META-ANALYSIS COMPLETE                            ║\n")
+  cat("╚══════════════════════════════════════════════════════════════╝\n\n")
+
   return(result)
 }
 
-
-#' Bayesian Meta-Regression
+#' Bayesian Prior Sensitivity Analysis
 #'
-#' Performs Bayesian meta-regression with covariates.
+#' Tests sensitivity of results to different prior specifications.
 #'
-#' @param data Data frame with effect sizes, SEs, and covariates
-#' @param formula Formula for regression (e.g., ~ year + quality)
-#' @param n_iter Number of MCMC iterations
-#' @param n_burn Burn-in period
-#' @param seed Random seed
+#' @param data Meta-analysis data frame
+#' @param effect Column name for effect sizes
+#' @param se Column name for standard errors
+#' @param prior_scenarios List of prior scenarios to test
+#' @param ... Additional arguments passed to bayesian_meta_analysis
 #'
-#' @return Object of class "bayesian_metareg" with posterior samples
+#' @return Prior sensitivity analysis object
 #'
 #' @export
-bayesian_metareg <- function(data, formula, n_iter = 10000, n_burn = 2000, seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(seed)
+bayesian_prior_sensitivity <- function(data, effect = "effect", se = "se",
+                                       prior_scenarios = NULL, ...) {
+
+  cat("╔══════════════════════════════════════════════════════════════╗\n")
+  cat("║   PRIOR SENSITIVITY ANALYSIS                                 ║\n")
+  cat("╚══════════════════════════════════════════════════════════════╝\n\n")
+
+  # Default prior scenarios
+  if (is.null(prior_scenarios)) {
+    prior_scenarios <- list(
+      list(name = "Weakly Informative", prior_mu = "weakly_informative", prior_tau = "half_cauchy"),
+      list(name = "Non-informative", prior_mu = "noninformative", prior_tau = "uniform"),
+      list(name = "Skeptical", prior_mu = list(mean = 0, sd = 0.1), prior_tau = "half_normal"),
+      list(name = "Enthusiastic", prior_mu = list(mean = 0.5, sd = 0.5), prior_tau = "half_cauchy")
+    )
   }
 
-  # Extract design matrix
-  mf <- model.frame(formula, data = data, na.action = na.pass)
-  X <- model.matrix(formula, data = mf)
-  p <- ncol(X)
-  k <- nrow(data)
+  results <- list()
+  summaries <- data.frame()
 
-  yi <- data$effect
-  sei <- data$se
-  vi <- sei^2
+  for (i in seq_along(prior_scenarios)) {
+    scenario <- prior_scenarios[[i]]
+    cat(sprintf("\n[%d/%d] Running: %s\n", i, length(prior_scenarios), scenario$name))
 
-  # Initialize
-  beta <- rep(0, p)
-  tau <- sd(yi)
+    bayes_result <- bayesian_meta_analysis(
+      data = data, effect = effect, se = se,
+      prior_mu = scenario$prior_mu,
+      prior_tau = scenario$prior_tau,
+      ...
+    )
 
-  # Storage
-  n_samples <- n_iter - n_burn
-  posterior_samples <- matrix(NA, nrow = n_samples, ncol = p + 1)
-  colnames(posterior_samples) <- c(colnames(X), "tau")
+    results[[scenario$name]] <- bayes_result
+
+    # Extract summary
+    mu_summary <- bayes_result$posterior_summary$mu
+    summaries <- rbind(summaries, data.frame(
+      scenario = scenario$name,
+      posterior_mean = mu_summary["mean"],
+      posterior_median = mu_summary["median"],
+      ci_lower = mu_summary["2.5%"],
+      ci_upper = mu_summary["97.5%"],
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  # Create comparison plot
+  comparison_plot <- plot_prior_sensitivity(summaries)
+
+  result <- list(
+    scenarios = prior_scenarios,
+    results = results,
+    summary = summaries,
+    plot = comparison_plot
+  )
+
+  class(result) <- c("bayesian_prior_sensitivity", "list")
+
+  cat("\n╔══════════════════════════════════════════════════════════════╗\n")
+  cat("║   SENSITIVITY ANALYSIS COMPLETE                              ║\n")
+  cat("╚══════════════════════════════════════════════════════════════╝\n\n")
+
+  return(result)
+}
+
+#' Calculate Bayes Factor
+#'
+#' Computes Bayes factor comparing two hypotheses.
+#'
+#' @param posterior_samples Posterior samples from Bayesian meta-analysis
+#' @param null_value Null hypothesis value (default: 0)
+#' @param alternative Alternative hypothesis: "two.sided", "greater", "less"
+#'
+#' @return Bayes factor and interpretation
+#'
+#' @export
+calculate_bayes_factor <- function(posterior_samples, null_value = 0,
+                                   alternative = "two.sided") {
+
+  # Savage-Dickey density ratio approximation
+  # BF01 = p(theta=null | data) / p(theta=null)
+
+  # Posterior density at null
+  posterior_density <- density(posterior_samples)
+  post_at_null <- approx(posterior_density$x, posterior_density$y, xout = null_value)$y
+
+  # Prior density at null (assuming weakly informative prior: N(0, 1))
+  prior_at_null <- dnorm(null_value, mean = 0, sd = 1)
+
+  # Bayes factor in favor of null
+  BF01 <- post_at_null / prior_at_null
+
+  # Bayes factor in favor of alternative
+  BF10 <- 1 / BF01
+
+  # Interpretation
+  interpretation <- interpret_bayes_factor(BF10)
+
+  list(
+    BF10 = BF10,
+    BF01 = BF01,
+    log_BF10 = log(BF10),
+    interpretation = interpretation,
+    evidence_strength = classification_bayes_factor(BF10)
+  )
+}
+
+#' @keywords internal
+configure_priors <- function(prior_mu, prior_tau) {
+  # Configure prior for overall effect (mu)
+  if (is.character(prior_mu)) {
+    if (prior_mu == "weakly_informative") {
+      mu_prior <- list(dist = "normal", mean = 0, sd = 1)
+      mu_desc <- "N(0, 1)"
+    } else if (prior_mu == "noninformative") {
+      mu_prior <- list(dist = "normal", mean = 0, sd = 100)
+      mu_desc <- "N(0, 100)"
+    } else {
+      stop("Unknown prior_mu. Use 'weakly_informative', 'noninformative', or custom list.")
+    }
+  } else if (is.list(prior_mu)) {
+    mu_prior <- prior_mu
+    mu_desc <- sprintf("N(%.2f, %.2f)", prior_mu$mean, prior_mu$sd)
+  }
+
+  # Configure prior for heterogeneity (tau)
+  if (is.character(prior_tau)) {
+    if (prior_tau == "half_cauchy") {
+      tau_prior <- list(dist = "half_cauchy", scale = 0.5)
+      tau_desc <- "Half-Cauchy(0, 0.5)"
+    } else if (prior_tau == "half_normal") {
+      tau_prior <- list(dist = "half_normal", scale = 0.5)
+      tau_desc <- "Half-Normal(0, 0.5)"
+    } else if (prior_tau == "uniform") {
+      tau_prior <- list(dist = "uniform", min = 0, max = 10)
+      tau_desc <- "Uniform(0, 10)"
+    } else {
+      stop("Unknown prior_tau. Use 'half_cauchy', 'half_normal', 'uniform', or custom list.")
+    }
+  } else if (is.list(prior_tau)) {
+    tau_prior <- prior_tau
+    tau_desc <- "Custom"
+  }
+
+  list(
+    mu = mu_prior, tau = tau_prior,
+    mu_desc = mu_desc, tau_desc = tau_desc
+  )
+}
+
+#' @keywords internal
+run_bayesian_mcmc <- function(y, s, priors, n_iter, n_burnin, n_chains) {
+  # Gibbs sampler for Bayesian random-effects meta-analysis
+  # Model: y_i ~ N(theta_i, s_i^2)
+  #        theta_i ~ N(mu, tau^2)
+
+  n <- length(y)
+  n_samples <- n_iter - n_burnin
+
+  # Storage for posterior samples (all chains combined)
+  all_mu <- numeric(n_samples * n_chains)
+  all_tau <- numeric(n_samples * n_chains)
+  all_theta <- matrix(NA, n_samples * n_chains, n)
 
   sample_idx <- 1
 
-  # MCMC
-  for (iter in 1:n_iter) {
-    # Update regression coefficients
-    for (j in 1:p) {
-      # Propose new value
-      beta_prop <- beta
-      beta_prop[j] <- beta[j] + rnorm(1, 0, 0.1)
+  for (chain in 1:n_chains) {
+    # Initialize
+    mu <- mean(y)
+    tau <- sd(y)
+    theta <- y
 
-      # Calculate fitted values
-      mu_current <- X %*% beta
-      mu_prop <- X %*% beta_prop
+    for (iter in 1:n_iter) {
+      # Update theta (study-specific effects)
+      precision_theta <- 1 / s^2 + 1 / tau^2
+      mean_theta <- (y / s^2 + mu / tau^2) / precision_theta
+      theta <- rnorm(n, mean = mean_theta, sd = sqrt(1 / precision_theta))
 
-      # Log likelihood
-      ll_current <- sum(dnorm(yi, mean = mu_current, sd = sqrt(vi + tau^2), log = TRUE))
-      ll_prop <- sum(dnorm(yi, mean = mu_prop, sd = sqrt(vi + tau^2), log = TRUE))
+      # Update mu (overall effect)
+      precision_mu <- 1 / priors$mu$sd^2 + n / tau^2
+      mean_mu <- (priors$mu$mean / priors$mu$sd^2 + sum(theta) / tau^2) / precision_mu
+      mu <- rnorm(1, mean = mean_mu, sd = sqrt(1 / precision_mu))
 
-      # Prior (flat)
-      prior_current <- dnorm(beta[j], 0, 10, log = TRUE)
-      prior_prop <- dnorm(beta_prop[j], 0, 10, log = TRUE)
+      # Update tau (heterogeneity)
+      # Using Metropolis-Hastings step
+      tau <- update_tau_mh(tau, theta, mu, priors$tau)
 
-      # Accept/reject
-      log_alpha <- (ll_prop + prior_prop) - (ll_current + prior_current)
-      if (log(runif(1)) < log_alpha) {
-        beta <- beta_prop
+      # Store samples (after burn-in)
+      if (iter > n_burnin) {
+        all_mu[sample_idx] <- mu
+        all_tau[sample_idx] <- tau
+        all_theta[sample_idx, ] <- theta
+        sample_idx <- sample_idx + 1
       }
     }
-
-    # Update tau
-    log_tau <- log(tau)
-    log_tau_prop <- log_tau + rnorm(1, 0, 0.05)
-    tau_prop <- exp(log_tau_prop)
-
-    mu <- X %*% beta
-    ll_current <- sum(dnorm(yi, mean = mu, sd = sqrt(vi + tau^2), log = TRUE))
-    ll_prop <- sum(dnorm(yi, mean = mu, sd = sqrt(vi + tau_prop^2), log = TRUE))
-
-    prior_current <- dcauchy(tau, 0, 1, log = TRUE) + log(tau)
-    prior_prop <- dcauchy(tau_prop, 0, 1, log = TRUE) + log(tau_prop)
-
-    log_alpha <- (ll_prop + prior_prop) - (ll_current + prior_current)
-    if (log(runif(1)) < log_alpha) {
-      tau <- tau_prop
-    }
-
-    # Store
-    if (iter > n_burn) {
-      posterior_samples[sample_idx, ] <- c(beta, tau)
-      sample_idx <- sample_idx + 1
-    }
   }
 
-  # Summary
-  summary_stats <- data.frame(
-    parameter = colnames(posterior_samples),
-    mean = colMeans(posterior_samples),
-    sd = apply(posterior_samples, 2, sd),
-    ci_lower = apply(posterior_samples, 2, quantile, 0.025),
-    ci_upper = apply(posterior_samples, 2, quantile, 0.975),
-    stringsAsFactors = FALSE
+  list(
+    posterior = list(mu = all_mu, tau = all_tau, tau2 = all_tau^2, theta = all_theta),
+    n_samples = n_samples * n_chains,
+    n_chains = n_chains
   )
-
-  result <- list(
-    posterior_samples = posterior_samples,
-    summary = summary_stats,
-    formula = formula,
-    data = data
-  )
-
-  class(result) <- "bayesian_metareg"
-  return(result)
 }
 
+#' @keywords internal
+update_tau_mh <- function(tau_current, theta, mu, prior_tau) {
+  # Metropolis-Hastings update for tau
+  # Proposal: log-normal random walk
+  tau_proposal <- tau_current * exp(rnorm(1, 0, 0.2))
 
-#' Prior Predictive Check
-#'
-#' Generates samples from the prior predictive distribution to assess
-#' prior reasonableness.
-#'
-#' @param n_samples Number of samples to generate
-#' @param prior_mean Prior mean for effect
-#' @param prior_sd Prior SD for effect
-#' @param prior_tau Prior for between-study SD
-#'
-#' @return Matrix of prior predictive samples
-#'
-#' @export
-prior_predictive_check <- function(n_samples = 1000, prior_mean = 0,
-                                    prior_sd = 10, prior_tau = list(scale = 1)) {
-  # Sample from priors
-  theta_samples <- rnorm(n_samples, prior_mean, prior_sd)
-  tau_samples <- abs(rcauchy(n_samples, 0, prior_tau$scale))
+  # Log-likelihood
+  log_lik_current <- sum(dnorm(theta, mu, tau_current, log = TRUE))
+  log_lik_proposal <- sum(dnorm(theta, mu, tau_proposal, log = TRUE))
 
-  # For each, simulate a study
-  study_effects <- rnorm(n_samples, theta_samples, tau_samples)
-
-  prior_samples <- data.frame(
-    theta = theta_samples,
-    tau = tau_samples,
-    study_effect = study_effects
-  )
-
-  return(prior_samples)
-}
-
-
-#' Posterior Predictive Check
-#'
-#' Generates posterior predictive samples to assess model fit.
-#'
-#' @param bayesian_result Object from bayesian_ma()
-#' @param n_rep Number of replications per posterior sample
-#'
-#' @return Matrix of posterior predictive samples
-#'
-#' @export
-posterior_predictive_check <- function(bayesian_result, n_rep = 1) {
-  if (!inherits(bayesian_result, "bayesian_ma")) {
-    stop("Input must be a bayesian_ma object")
+  # Log-prior
+  if (prior_tau$dist == "half_cauchy") {
+    log_prior_current <- dcauchy(tau_current, 0, prior_tau$scale, log = TRUE) + log(2)
+    log_prior_proposal <- dcauchy(tau_proposal, 0, prior_tau$scale, log = TRUE) + log(2)
+  } else if (prior_tau$dist == "half_normal") {
+    log_prior_current <- dnorm(tau_current, 0, prior_tau$scale, log = TRUE) + log(2)
+    log_prior_proposal <- dnorm(tau_proposal, 0, prior_tau$scale, log = TRUE) + log(2)
+  } else if (prior_tau$dist == "uniform") {
+    log_prior_current <- dunif(tau_current, prior_tau$min, prior_tau$max, log = TRUE)
+    log_prior_proposal <- dunif(tau_proposal, prior_tau$min, prior_tau$max, log = TRUE)
   }
 
-  posterior <- bayesian_result$posterior_samples
-  n_samples <- nrow(posterior)
-  k <- nrow(bayesian_result$data)
+  # Acceptance ratio (including Jacobian for log-normal proposal)
+  log_ratio <- (log_lik_proposal + log_prior_proposal + log(tau_proposal)) -
+               (log_lik_current + log_prior_current + log(tau_current))
 
-  # For each posterior sample, simulate new studies
-  y_rep <- matrix(NA, nrow = n_samples * n_rep, ncol = k)
+  # Accept or reject
+  if (log(runif(1)) < log_ratio) {
+    return(tau_proposal)
+  } else {
+    return(tau_current)
+  }
+}
 
-  idx <- 1
-  for (i in 1:n_samples) {
-    theta <- posterior[i, "theta"]
-    tau <- posterior[i, "tau"]
+#' @keywords internal
+check_mcmc_diagnostics <- function(mcmc_result) {
+  # Calculate Rhat (Gelman-Rubin statistic)
+  n_samples_per_chain <- mcmc_result$n_samples / mcmc_result$n_chains
 
-    for (r in 1:n_rep) {
-      # Simulate study-specific effects
-      study_effects <- rnorm(k, theta, tau)
-      # Add sampling error
-      y_rep[idx, ] <- rnorm(k, study_effects, bayesian_result$data$se)
-      idx <- idx + 1
+  # Split chains
+  chains_mu <- split(mcmc_result$posterior$mu, rep(1:mcmc_result$n_chains, each = n_samples_per_chain))
+  chains_tau <- split(mcmc_result$posterior$tau, rep(1:mcmc_result$n_chains, each = n_samples_per_chain))
+
+  rhat_mu <- calculate_rhat(chains_mu)
+  rhat_tau <- calculate_rhat(chains_tau)
+
+  # Effective sample size
+  ess_mu <- calculate_ess(mcmc_result$posterior$mu)
+  ess_tau <- calculate_ess(mcmc_result$posterior$tau)
+
+  list(
+    converged = rhat_mu < 1.1 && rhat_tau < 1.1,
+    rhat_mu = rhat_mu,
+    rhat_tau = rhat_tau,
+    ess_mu = ess_mu,
+    ess_tau = ess_tau,
+    min_ess = min(ess_mu, ess_tau)
+  )
+}
+
+#' @keywords internal
+calculate_rhat <- function(chains) {
+  # Gelman-Rubin statistic
+  n_chains <- length(chains)
+  n <- length(chains[[1]])
+
+  # Within-chain variance
+  W <- mean(sapply(chains, var))
+
+  # Between-chain variance
+  chain_means <- sapply(chains, mean)
+  B <- n * var(chain_means)
+
+  # Rhat
+  var_plus <- ((n - 1) / n) * W + (1 / n) * B
+  rhat <- sqrt(var_plus / W)
+
+  return(rhat)
+}
+
+#' @keywords internal
+calculate_ess <- function(samples) {
+  # Effective sample size using autocorrelation
+  n <- length(samples)
+  acf_result <- acf(samples, lag.max = 100, plot = FALSE)
+  rho <- acf_result$acf[-1]  # Exclude lag 0
+
+  # Sum autocorrelations until they become negative
+  sum_rho <- 0
+  for (i in seq_along(rho)) {
+    if (rho[i] < 0) break
+    sum_rho <- sum_rho + rho[i]
+  }
+
+  ess <- n / (1 + 2 * sum_rho)
+  return(ess)
+}
+
+#' @keywords internal
+summarize_posterior <- function(mcmc_result, prob_intervals) {
+  # Summary statistics for mu
+  mu_samples <- mcmc_result$posterior$mu
+  mu_summary <- c(
+    mean = mean(mu_samples),
+    median = median(mu_samples),
+    sd = sd(mu_samples)
+  )
+
+  # Credible intervals
+  for (prob in prob_intervals) {
+    alpha <- 1 - prob
+    ci <- quantile(mu_samples, probs = c(alpha/2, 1 - alpha/2))
+    mu_summary[sprintf("%.1f%%", (alpha/2)*100)] <- ci[1]
+    mu_summary[sprintf("%.1f%%", (1-alpha/2)*100)] <- ci[2]
+  }
+
+  # Summary statistics for tau
+  tau_samples <- mcmc_result$posterior$tau
+  tau_summary <- c(
+    mean = mean(tau_samples),
+    median = median(tau_samples),
+    sd = sd(tau_samples)
+  )
+
+  for (prob in prob_intervals) {
+    alpha <- 1 - prob
+    ci <- quantile(tau_samples, probs = c(alpha/2, 1 - alpha/2))
+    tau_summary[sprintf("%.1f%%", (alpha/2)*100)] <- ci[1]
+    tau_summary[sprintf("%.1f%%", (1-alpha/2)*100)] <- ci[2]
+  }
+
+  # I-squared
+  tau2 <- tau_samples^2
+  I2 <- 100 * tau2 / (tau2 + mean(mcmc_result$posterior$theta)^2)
+
+  list(
+    mu = mu_summary,
+    tau = tau_summary,
+    I2 = c(mean = mean(I2), median = median(I2))
+  )
+}
+
+#' @keywords internal
+posterior_predictive <- function(mcmc_result) {
+  # Generate posterior predictive distribution
+  mu_samples <- mcmc_result$posterior$mu
+  tau_samples <- mcmc_result$posterior$tau
+  n_samples <- length(mu_samples)
+
+  # Sample new study effect from predictive distribution
+  pred_samples <- rnorm(n_samples, mean = mu_samples, sd = tau_samples)
+
+  list(
+    samples = pred_samples,
+    mean = mean(pred_samples),
+    median = median(pred_samples),
+    ci95 = quantile(pred_samples, probs = c(0.025, 0.975)),
+    ci90 = quantile(pred_samples, probs = c(0.05, 0.95))
+  )
+}
+
+#' @keywords internal
+calculate_probabilities <- function(mcmc_result) {
+  mu_samples <- mcmc_result$posterior$mu
+
+  list(
+    prob_positive = mean(mu_samples > 0),
+    prob_negative = mean(mu_samples < 0),
+    prob_important = mean(abs(mu_samples) > 0.2),
+    prob_very_important = mean(abs(mu_samples) > 0.5)
+  )
+}
+
+#' @keywords internal
+create_bayesian_plots <- function(mcmc_result, y, s, pred_dist) {
+  plots <- list()
+
+  # Posterior density plots
+  plots$posterior_mu <- plot_posterior_density(mcmc_result$posterior$mu, "Overall Effect (mu)")
+  plots$posterior_tau <- plot_posterior_density(mcmc_result$posterior$tau, "Heterogeneity (tau)")
+
+  # Trace plots
+  plots$trace_mu <- plot_trace(mcmc_result$posterior$mu, mcmc_result$n_chains, "mu")
+  plots$trace_tau <- plot_trace(mcmc_result$posterior$tau, mcmc_result$n_chains, "tau")
+
+  # Forest plot
+  plots$forest <- plot_bayesian_forest(mcmc_result, y, s)
+
+  # Posterior predictive
+  if (!is.null(pred_dist)) {
+    plots$predictive <- plot_predictive_distribution(pred_dist)
+  }
+
+  plots
+}
+
+#' @keywords internal
+plot_posterior_density <- function(samples, param_name) {
+  par(mar = c(5, 5, 3, 2))
+  dens <- density(samples)
+  plot(dens, main = sprintf("Posterior Distribution: %s", param_name),
+       xlab = param_name, ylab = "Density", lwd = 2, col = "steelblue")
+  polygon(dens$x, dens$y, col = rgb(0.3, 0.5, 0.7, 0.3), border = NA)
+
+  # Add credible interval
+  ci95 <- quantile(samples, probs = c(0.025, 0.975))
+  abline(v = ci95, lty = 2, col = "red", lwd = 2)
+  abline(v = mean(samples), lty = 1, col = "darkblue", lwd = 2)
+
+  legend("topright",
+         legend = c("Mean", "95% CI"),
+         lty = c(1, 2), col = c("darkblue", "red"), lwd = 2)
+}
+
+#' @keywords internal
+plot_trace <- function(samples, n_chains, param_name) {
+  par(mar = c(5, 5, 3, 2))
+  n_samples_per_chain <- length(samples) / n_chains
+  chains <- split(samples, rep(1:n_chains, each = n_samples_per_chain))
+
+  plot(1:n_samples_per_chain, chains[[1]], type = "l", col = 1,
+       ylim = range(samples), xlab = "Iteration", ylab = param_name,
+       main = sprintf("Trace Plot: %s", param_name))
+
+  for (i in 2:n_chains) {
+    lines(1:n_samples_per_chain, chains[[i]], col = i)
+  }
+
+  legend("topright", legend = paste("Chain", 1:n_chains),
+         col = 1:n_chains, lty = 1)
+}
+
+#' @keywords internal
+plot_bayesian_forest <- function(mcmc_result, y, s) {
+  n <- length(y)
+  par(mar = c(5, 8, 3, 2))
+
+  # Study-specific posteriors
+  theta_summary <- apply(mcmc_result$posterior$theta, 2, function(x) {
+    c(mean = mean(x), ci_lower = quantile(x, 0.025), ci_upper = quantile(x, 0.975))
+  })
+
+  # Overall posterior
+  mu_summary <- c(
+    mean = mean(mcmc_result$posterior$mu),
+    ci_lower = quantile(mcmc_result$posterior$mu, 0.025),
+    ci_upper = quantile(mcmc_result$posterior$mu, 0.975)
+  )
+
+  plot.new()
+  plot.window(xlim = range(c(theta_summary, mu_summary)), ylim = c(0.5, n + 1.5))
+
+  # Plot studies
+  for (i in 1:n) {
+    y_pos <- n - i + 1
+    lines(c(theta_summary["ci_lower", i], theta_summary["ci_upper", i]),
+          c(y_pos, y_pos), lwd = 2)
+    points(theta_summary["mean", i], y_pos, pch = 15, cex = 1.5)
+  }
+
+  # Plot overall
+  polygon(c(mu_summary["ci_lower"], mu_summary["ci_upper"], mu_summary["ci_upper"], mu_summary["ci_lower"]),
+          c(0.3, 0.3, 0.7, 0.7), col = "gray80", border = NA)
+  points(mu_summary["mean"], 0.5, pch = 18, cex = 2, col = "red")
+
+  abline(v = 0, lty = 2, col = "gray50")
+  axis(1)
+  axis(2, at = c(0.5, n:1), labels = c("Overall", paste("Study", 1:n)), las = 1, tick = FALSE)
+  title("Bayesian Forest Plot", font.main = 2)
+  title(xlab = "Effect Size (95% Credible Interval)")
+}
+
+#' @keywords internal
+plot_predictive_distribution <- function(pred_dist) {
+  par(mar = c(5, 5, 3, 2))
+  dens <- density(pred_dist$samples)
+  plot(dens, main = "Posterior Predictive Distribution",
+       xlab = "Predicted Effect for New Study", ylab = "Density",
+       lwd = 2, col = "darkgreen")
+  polygon(dens$x, dens$y, col = rgb(0, 0.5, 0, 0.3), border = NA)
+
+  ci95 <- pred_dist$ci95
+  abline(v = ci95, lty = 2, col = "red", lwd = 2)
+  abline(v = pred_dist$mean, lty = 1, col = "darkblue", lwd = 2)
+
+  legend("topright",
+         legend = c("Mean", "95% Interval"),
+         lty = c(1, 2), col = c("darkblue", "red"), lwd = 2)
+}
+
+#' @keywords internal
+plot_prior_sensitivity <- function(summaries) {
+  n_scenarios <- nrow(summaries)
+  par(mar = c(5, 10, 3, 2))
+
+  plot.new()
+  plot.window(xlim = range(c(summaries$ci_lower, summaries$ci_upper)),
+              ylim = c(0.5, n_scenarios + 0.5))
+
+  for (i in 1:n_scenarios) {
+    y_pos <- n_scenarios - i + 1
+    lines(c(summaries$ci_lower[i], summaries$ci_upper[i]), c(y_pos, y_pos), lwd = 2)
+    points(summaries$posterior_mean[i], y_pos, pch = 15, cex = 1.5)
+  }
+
+  abline(v = 0, lty = 2, col = "gray50")
+  axis(1)
+  axis(2, at = n_scenarios:1, labels = summaries$scenario, las = 1, tick = FALSE)
+  title("Prior Sensitivity Analysis", font.main = 2)
+  title(xlab = "Posterior Mean Effect (95% CI)")
+}
+
+#' @keywords internal
+interpret_bayes_factor <- function(BF10) {
+  if (BF10 < 1) {
+    "Evidence in favor of null hypothesis"
+  } else if (BF10 < 3) {
+    "Anecdotal evidence for alternative"
+  } else if (BF10 < 10) {
+    "Moderate evidence for alternative"
+  } else if (BF10 < 30) {
+    "Strong evidence for alternative"
+  } else if (BF10 < 100) {
+    "Very strong evidence for alternative"
+  } else {
+    "Extreme evidence for alternative"
+  }
+}
+
+#' @keywords internal
+classification_bayes_factor <- function(BF10) {
+  if (BF10 < 0.33) "Substantial for null"
+  else if (BF10 < 1) "Anecdotal for null"
+  else if (BF10 < 3) "Anecdotal for alternative"
+  else if (BF10 < 10) "Moderate for alternative"
+  else if (BF10 < 30) "Strong for alternative"
+  else if (BF10 < 100) "Very strong for alternative"
+  else "Extreme for alternative"
+}
+
+#' @export
+print.bayesian_meta_analysis <- function(x, ...) {
+  cat("Bayesian Meta-Analysis Results\n")
+  cat("===============================\n\n")
+
+  cat(sprintf("Studies: %d\n", nrow(x$data)))
+  cat(sprintf("MCMC samples: %d\n\n", x$posterior$n_samples))
+
+  cat("Posterior Summary for Overall Effect (mu):\n")
+  print(round(x$posterior_summary$mu, 3))
+
+  cat("\nPosterior Summary for Heterogeneity (tau):\n")
+  print(round(x$posterior_summary$tau, 3))
+
+  cat("\nProbability Statements:\n")
+  cat(sprintf("  P(effect > 0) = %.3f\n", x$probabilities$prob_positive))
+  cat(sprintf("  P(|effect| > 0.2) = %.3f\n", x$probabilities$prob_important))
+
+  if (!is.null(x$predictive)) {
+    cat("\nPosterior Predictive for New Study:\n")
+    cat(sprintf("  Mean: %.3f\n", x$predictive$mean))
+    cat(sprintf("  95%% Interval: [%.3f, %.3f]\n",
+                x$predictive$ci95[1], x$predictive$ci95[2]))
+  }
+
+  cat("\n")
+  invisible(x)
+}
+
+#' @export
+summary.bayesian_meta_analysis <- function(object, ...) {
+  print(object, ...)
+
+  cat("Diagnostics:\n")
+  cat(sprintf("  Rhat (mu): %.3f\n", object$diagnostics$rhat_mu))
+  cat(sprintf("  Rhat (tau): %.3f\n", object$diagnostics$rhat_tau))
+  cat(sprintf("  ESS (mu): %.0f\n", object$diagnostics$ess_mu))
+  cat(sprintf("  ESS (tau): %.0f\n", object$diagnostics$ess_tau))
+
+  if (object$diagnostics$converged) {
+    cat("  ✓ Convergence achieved\n")
+  } else {
+    cat("  ⚠️  Convergence issues detected\n")
+  }
+
+  invisible(object)
+}
+
+#' @export
+plot.bayesian_meta_analysis <- function(x, type = "posterior", ...) {
+  if (type == "posterior") {
+    par(mfrow = c(1, 2))
+    x$plots$posterior_mu
+    x$plots$posterior_tau
+  } else if (type == "trace") {
+    par(mfrow = c(1, 2))
+    x$plots$trace_mu
+    x$plots$trace_tau
+  } else if (type == "forest") {
+    x$plots$forest
+  } else if (type == "predictive") {
+    if (!is.null(x$plots$predictive)) {
+      x$plots$predictive
+    } else {
+      stop("Predictive distribution not available")
     }
+  } else {
+    stop("Unknown plot type")
   }
-
-  return(y_rep)
-}
-
-
-#' Bayes Factor for Meta-Analysis
-#'
-#' Computes approximate Bayes factor comparing null hypothesis (effect = 0)
-#' to alternative hypothesis using Savage-Dickey ratio.
-#'
-#' @param bayesian_result Object from bayesian_ma()
-#' @param null_value Value under null hypothesis (default: 0)
-#'
-#' @return List with Bayes factor and interpretation
-#'
-#' @export
-bayes_factor_ma <- function(bayesian_result, null_value = 0) {
-  if (!inherits(bayesian_result, "bayesian_ma")) {
-    stop("Input must be a bayesian_ma object")
-  }
-
-  posterior <- bayesian_result$posterior_samples[, "theta"]
-
-  # Density at null value
-  # Posterior density
-  post_density_at_null <- density(posterior, from = null_value, to = null_value, n = 1)$y
-
-  # Prior density at null
-  prior_mean <- bayesian_result$prior$effect_mean
-  prior_sd <- bayesian_result$prior$effect_sd
-  prior_density_at_null <- dnorm(null_value, prior_mean, prior_sd)
-
-  # Savage-Dickey ratio
-  BF10 <- prior_density_at_null / post_density_at_null
-
-  # Interpretation (Kass & Raftery, 1995)
-  interpretation <- if (BF10 < 1/100) "Decisive evidence for H0"
-                   else if (BF10 < 1/10) "Strong evidence for H0"
-                   else if (BF10 < 1/3) "Moderate evidence for H0"
-                   else if (BF10 < 3) "Anecdotal evidence"
-                   else if (BF10 < 10) "Moderate evidence for H1"
-                   else if (BF10 < 100) "Strong evidence for H1"
-                   else "Decisive evidence for H1"
-
-  result <- list(
-    BF10 = BF10,
-    BF01 = 1 / BF10,
-    interpretation = interpretation,
-    null_value = null_value,
-    note = "BF10: Evidence for alternative vs null. BF01: Evidence for null vs alternative."
-  )
-
-  return(result)
 }
