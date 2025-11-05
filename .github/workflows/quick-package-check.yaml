@@ -1,0 +1,43 @@
+name: Quick Package Availability Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if packages exist on CRAN
+        run: |
+          cat > check_cran.R << 'EOF'
+          packages <- c(
+            "metafor", "netmeta", "lme4", "glmmTMB", "ggplot2", "dplyr",
+            "gridExtra", "testthat", "knitr", "rmarkdown", "shiny", "bs4Dash",
+            "DT", "meta", "httr", "jsonlite", "randomForest", "xgboost",
+            "e1071", "nnet", "dbscan", "rentrez", "rcrossref", "openalexR",
+            "xml2", "markdown", "waiter", "shinyjs", "plotly", "officer"
+          )
+
+          cat("\n=== Checking package availability on CRAN ===\n")
+          available <- available.packages(repos = "https://cloud.r-project.org")
+          available_names <- rownames(available)
+
+          missing <- c()
+          for (pkg in packages) {
+            if (pkg %in% available_names) {
+              cat(sprintf("✓ %s - Available\n", pkg))
+            } else {
+              cat(sprintf("✗ %s - NOT FOUND ON CRAN\n", pkg))
+              missing <- c(missing, pkg)
+            }
+          }
+
+          if (length(missing) > 0) {
+            cat(sprintf("\n\nMISSING PACKAGES: %s\n", paste(missing, collapse = ", ")))
+          } else {
+            cat("\n\nAll packages are available on CRAN!\n")
+          }
+          EOF
+
+          R --vanilla < check_cran.R
+        shell: bash
