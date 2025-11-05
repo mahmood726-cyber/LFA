@@ -1,19 +1,22 @@
 Package: cbamm
 Type: Package
-Title: AI-Powered Meta-Analysis with 500+ Rules and 10,000 Scenarios
-Version: 2.0.0
+Title: AI-Powered Meta-Analysis with ML, Living Reviews, 500+ Rules and 10,000 Scenarios
+Version: 2.1.0
 Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net",
                         role = c("aut", "cre"))
 Description: Revolutionary meta-analysis toolkit combining traditional methods
     (DerSimonian-Laird, REML), advanced techniques (network meta-analysis, Bayesian,
-    multivariate, IPD, dose-response), machine learning (random forest, neural networks),
-    AI-powered assistance (local Llama 3 via Ollama), comprehensive rules engine (500+
+    multivariate, IPD, dose-response), machine learning (random forest, XGBoost, SVM,
+    neural networks for prediction, clustering, and automated discovery), AI-powered
+    assistance (Gemini API, local Llama 3 via Ollama), comprehensive rules engine (500+
     expert rules covering methodology, quality, heterogeneity, bias, interpretation),
-    extensive scenario database (10,000+ validated scenarios across all domains), living
-    systematic reviews, publication-quality visualizations, and seamless integration.
-    Unique autopilot mode provides fully automated analysis with AI making all
-    methodological decisions. Optimized for performance with parallel processing.
-    Designed for researchers requiring cutting-edge methods with intelligent guidance.
+    extensive scenario database (10,000+ validated scenarios across all domains), fully
+    automated living systematic reviews (PubMed, Crossref, OpenAlex monitoring with AI
+    screening and data extraction), publication-quality visualizations, and seamless
+    integration. Features ML-based effect prediction, automated moderator discovery,
+    study clustering, and continuous literature monitoring. Optimized for performance
+    with parallel processing. Designed for researchers requiring cutting-edge methods
+    with intelligent guidance.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -34,11 +37,27 @@ Suggests:
     knitr,
     rmarkdown,
     shiny (>= 1.7.0),
+    bs4Dash,
     DT,
     meta,
     httr,
-    jsonlite
+    jsonlite,
+    randomForest,
+    xgboost,
+    e1071,
+    nnet,
+    dbscan,
+    rentrez,
+    rcrossref,
+    openalexR,
+    xml2,
+    markdown,
+    waiter,
+    shinyjs,
+    plotly
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-SystemRequirements: Optional: Ollama (https://ollama.ai) for AI features with Llama 3
+SystemRequirements: Optional: Ollama (https://ollama.ai) for local AI features with
+    Llama 3. Optional: Google Gemini API key for cloud-based AI screening and data
+    extraction in living reviews.
