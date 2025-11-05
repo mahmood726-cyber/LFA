@@ -108,5 +108,13 @@ jobs:
           }
           EOF
 
-          Rscript test_packages.R
+          Rscript test_packages.R 2>&1 | tee package_test_results.txt
         shell: bash
+        continue-on-error: true
+
+      - name: Upload diagnostic results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-diagnostic-results
+          path: package_test_results.txt
