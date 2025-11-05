@@ -1,0 +1,112 @@
+name: Diagnose Dependencies
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/normalize-line-endings-011CUqQ8ThrrM5uygs4pUcwR]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
+            libfreetype6-dev \
+            libpng-dev \
+            libtiff5-dev \
+            libjpeg-dev \
+            libgit2-dev
+
+      - name: Test package installation one by one
+        run: |
+          cat > test_packages.R << 'EOF'
+          # List of packages from DESCRIPTION Suggests
+          packages <- c(
+            "metafor",
+            "netmeta",
+            "lme4",
+            "glmmTMB",
+            "ggplot2",
+            "dplyr",
+            "gridExtra",
+            "testthat",
+            "knitr",
+            "rmarkdown",
+            "shiny",
+            "bs4Dash",
+            "DT",
+            "meta",
+            "httr",
+            "jsonlite",
+            "randomForest",
+            "xgboost",
+            "e1071",
+            "nnet",
+            "dbscan",
+            "rentrez",
+            "rcrossref",
+            "openalexR",
+            "xml2",
+            "markdown",
+            "waiter",
+            "shinyjs",
+            "plotly",
+            "officer"
+          )
+
+          cat("\\n=== Testing package installation ===\\n")
+          failed_packages <- c()
+
+          for (pkg in packages) {
+            cat(sprintf("\\nTrying to install: %s... ", pkg))
+            result <- tryCatch({
+              install.packages(pkg, quiet = TRUE, dependencies = TRUE)
+              if (requireNamespace(pkg, quietly = TRUE)) {
+                cat("✓ SUCCESS\\n")
+                TRUE
+              } else {
+                cat("✗ FAILED (not loadable)\\n")
+                failed_packages <- c(failed_packages, pkg)
+                FALSE
+              }
+            }, error = function(e) {
+              cat(sprintf("✗ ERROR: %s\\n", conditionMessage(e)))
+              failed_packages <<- c(failed_packages, pkg)
+              FALSE
+            }, warning = function(w) {
+              cat(sprintf("⚠ WARNING: %s\\n", conditionMessage(w)))
+              TRUE
+            })
+          }
+
+          cat("\\n\\n=== SUMMARY ===\\n")
+          if (length(failed_packages) > 0) {
+            cat("Failed packages:\\n")
+            for (pkg in failed_packages) {
+              cat(sprintf("  - %s\\n", pkg))
+            }
+            cat(sprintf("\\nTotal failed: %d out of %d\\n",
+                       length(failed_packages), length(packages)))
+            quit(status = 1)
+          } else {
+            cat("All packages installed successfully!\\n")
+          }
+          EOF
+
+          Rscript test_packages.R
+        shell: bash
