@@ -8,14 +8,19 @@
 
 ## Overview
 
-`cbamm` provides a comprehensive suite of tools for conducting meta-analyses with a focus on:
+`cbamm` provides a **state-of-the-art** comprehensive suite of tools for meta-analysis, implementing the latest methodological advances from statistical journals (2024-2025):
 
-- **Fast computation**: Efficient random-effects meta-analysis suitable for large datasets
-- **Cumulative analysis**: Track how evidence accumulates over time with stability assessment
-- **Generalizability**: Transport weights for external validity and population generalization
-- **Diagnostic test accuracy**: Specialized tools for DTA meta-analyses
-- **Advanced methods**: Meta-regression, subgroup analysis, and robust variance estimation
-- **Visualization**: Enhanced forest plots, cumulative dashboards, and funnel plots
+### Core Features
+- **Fast computation**: Efficient random-effects meta-analysis for large datasets
+- **Cumulative analysis**: Evidence accumulation tracking with stability assessment
+- **Generalizability**: Transport weights for external validity
+- **Publication bias**: Egger test, PET-PEESE, Trim & Fill (2024 methods)
+- **Sensitivity analysis**: Leave-one-out, influence diagnostics, Cook's distance
+- **Advanced visualization**: Baujat plots, radial plots, contour-enhanced funnel plots
+- **Effect size conversions**: Cohen's d, Hedges' g, OR, RR, correlations
+- **Diagnostic test accuracy**: Bivariate models, SROC curves
+- **Meta-regression**: Study-level covariates, subgroup analysis
+- **Reporting**: PRISMA checklists, automated reports, power analysis
 
 ## Installation
 
@@ -155,6 +160,124 @@ print(result)
 # Back-transform to odds ratio scale
 exp(result$estimate)
 exp(c(result$ci_lower, result$ci_upper))
+```
+
+## Advanced Features (New in 2024!)
+
+### Publication Bias Detection & Correction
+
+Based on latest 2024-2025 methodological research:
+
+```r
+# Comprehensive publication bias assessment
+bias_results <- assess_publication_bias(example_meta, methods = "all")
+print(bias_results)
+
+# Egger's regression test
+egger <- egger_test(example_meta)
+print(egger)
+
+# PET-PEESE correction (recommended method per 2024 research)
+pet_peese_result <- pet_peese(example_meta, method = "conditional")
+print(pet_peese_result)
+
+# Trim and fill
+tf_result <- trim_fill(example_meta)
+print(tf_result)
+```
+
+### Sensitivity & Influence Analysis
+
+```r
+# Leave-one-out analysis
+loo_result <- leave_one_out(example_meta, sort_by = "influence")
+print(loo_result)
+plot_leave_one_out(loo_result)
+
+# Comprehensive influence diagnostics
+influence_result <- influence_diagnostics(example_meta)
+print(influence_result)
+plot_influence_diagnostics(influence_result)
+
+# Bootstrap confidence intervals
+boot_result <- bootstrap_ma(example_meta, n_bootstrap = 1000, seed = 123)
+hist(boot_result$bootstrap_estimates, main = "Bootstrap Distribution")
+```
+
+### Advanced Visualization
+
+```r
+# Baujat plot (identify heterogeneity sources)
+baujat_plot(example_meta, label_points = TRUE)
+
+# Contour-enhanced funnel plot
+contour_funnel_plot(example_meta)
+
+# Radial (Galbraith) plot
+radial_plot(example_meta)
+```
+
+### Effect Size Conversions
+
+```r
+# Cohen's d to Hedges' g
+g <- d_to_g(d = 0.5, n1 = 30, n2 = 30)
+
+# Calculate Cohen's d from means and SDs
+d_result <- cohens_d_from_means(m1 = 10, m2 = 8, sd1 = 2, sd2 = 2,
+                                 n1 = 30, n2 = 30)
+
+# Odds ratio from 2x2 table
+or_result <- or_from_2x2(a = 50, b = 25, c = 30, d = 45)
+print(or_result)
+
+# Risk ratio from 2x2 table
+rr_result <- rr_from_2x2(a = 50, b = 25, c = 30, d = 45)
+
+# Fisher's Z transformation for correlations
+z <- fisher_z(r = 0.5)
+r_back <- inv_fisher_z(z)
+```
+
+### Advanced DTA: Bivariate Meta-Analysis
+
+```r
+# Bivariate analysis of sensitivity and specificity
+dta_result <- dta_bivariate(example_dta, method = "reitsma")
+print(dta_result)
+
+# Summary ROC plot
+sroc_plot(dta_result, show_ci = TRUE)
+
+# Coupled forest plots
+dta_forest_plot(example_dta, dta_result)
+
+# Calculate likelihood ratios
+lr <- likelihood_ratios(sensitivity = 0.90, specificity = 0.85)
+print(lr)
+```
+
+### Reporting & Export
+
+```r
+# Generate comprehensive report
+generate_report(result, file = "meta_analysis_report.txt",
+                include_studies = TRUE)
+
+# Export results as table
+summary_table(result, format = "markdown")
+summary_table(result, format = "latex")
+
+# Export study-level data
+export_study_data(result, file = "study_data.csv")
+
+# PRISMA checklist
+prisma_checklist(interactive = TRUE)
+
+# Power analysis
+power <- power_analysis_ma(k = 10, effect_size = 0.5,
+                           heterogeneity = 0.25, avg_n = 50)
+print(power)
 ```
 
 ## Key Features
