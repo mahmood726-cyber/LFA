@@ -1,25 +1,25 @@
 Package: cbamm
 Type: Package
-Title: Ultimate Meta-Analysis System: ML, Bayesian, NMA, Living Reviews, Auto-Reporting
-Version: 2.2.0
+Title: Ultimate Meta-Analysis: ML, Bayesian, NMA, Multivariate, Dose-Response, Living Reviews
+Version: 2.3.0
 Authors@R: person("Mahmood", "Ahmad", email = "mahmood.ahmad2@nhs.net",
                         role = c("aut", "cre"))
-Description: The most comprehensive meta-analysis system available, combining traditional
-    methods (DerSimonian-Laird, REML, Bayesian MCMC with full diagnostics), advanced
-    techniques (network meta-analysis with SUCRA rankings and league tables, multivariate,
-    IPD, dose-response), revolutionary machine learning (random forest, XGBoost, SVM,
-    neural networks for effect prediction, automated study clustering, heterogeneity source
-    identification, moderator discovery), AI-powered intelligence (Gemini API, local Llama 3
-    via Ollama for screening and extraction), comprehensive rules engine (1000+ expert rules
-    covering all methodological domains), extensive scenario database (10,000+ validated
-    scenarios), fully automated living systematic reviews (PubMed, Crossref, OpenAlex
-    monitoring with AI screening), advanced publication bias correction (PET-PEESE, selection
-    models, p-curve, p-uniform, limit meta-analysis), and automated PRISMA-compliant
-    manuscript generation. Generates complete publication-ready documents with one command.
-    Bayesian analysis includes prior sensitivity, posterior predictive distributions, and
-    Bayes factors. Network meta-analysis provides treatment rankings, inconsistency
-    assessment, and network plots. Publication bias methods include multiple state-of-the-art
-    correction techniques. Optimized for performance with parallel processing.
+Description: The most comprehensive meta-analysis system ever created, implementing
+    cutting-edge methods from top statistical journals (Statistics in Medicine, Research
+    Synthesis Methods, Biometrics). Combines traditional methods (DerSimonian-Laird, REML,
+    Bayesian MCMC), advanced techniques (network meta-analysis with SUCRA rankings,
+    multivariate meta-analysis for correlated outcomes, dose-response with restricted cubic
+    splines, IPD), revolutionary machine learning (RF, XGBoost, SVM, neural networks for
+    prediction, clustering, heterogeneity identification), AI intelligence (Gemini, Ollama
+    for screening), comprehensive rules (1000+), living systematic reviews (PubMed, Crossref,
+    OpenAlex monitoring), advanced publication bias correction (PET-PEESE, selection models,
+    p-curve, p-uniform, limit MA), automated PRISMA manuscript generation, and comprehensive
+    sensitivity analysis suite (15+ methods). Multivariate MA handles multiple correlated
+    outcomes with within-study correlation. Dose-response uses flexible splines for non-linear
+    relationships. Sensitivity analysis includes leave-one-out, influential/outlier exclusion,
+    alternative estimators, Hartung-Knapp adjustment, cumulative MA. Bayesian analysis with
+    prior sensitivity, posterior predictive, Bayes factors. Complete publication-ready
+    documents generated automatically. Optimized with parallel processing.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
