@@ -1,14 +1,27 @@
-# cbamm: Comprehensive Bayesian and Advanced Meta-Analysis Methods
+# cbamm: AI-Powered Meta-Analysis with 500+ Rules & 10,000 Scenarios
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/mahmood726-cyber/LFA/workflows/R-CMD-check/badge.svg)](https://github.com/mahmood726-cyber/LFA/actions)
 [![CRAN status](https://www.r-pkg.org/badges/version/cbamm)](https://CRAN.R-project.org/package=cbamm)
 [![License: GPL (>= 3)](https://img.shields.io/badge/License-GPL%20%28%3E%3D%203%29-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![AI: Llama 3](https://img.shields.io/badge/AI-Llama%203-green.svg)](https://ollama.ai)
+[![Rules: 500+](https://img.shields.io/badge/Rules-500%2B-blue.svg)]()
+[![Scenarios: 10K+](https://img.shields.io/badge/Scenarios-10K%2B-purple.svg)]()
 <!-- badges: end -->
+
+## 🚀 Revolutionary Features
+
+`cbamm` is the **world's first AI-powered meta-analysis package** combining:
+- 🤖 **Local AI (Llama 3)**: Intelligent guidance via Ollama
+- 📜 **500+ Expert Rules**: Comprehensive rules engine covering all meta-analysis aspects
+- 🗂️ **10,000+ Scenarios**: Validated reference database across all research domains
+- 🤖 **Autopilot Mode**: Fully automated analysis with AI making methodological decisions
+
+No other package offers this combination of AI assistance, expert rules, and scenario matching!
 
 ## Overview
 
-`cbamm` provides the **world's most comprehensive** meta-analysis toolkit in R, implementing cutting-edge methodological advances from statistical journals (2024-2025) plus breakthrough features unavailable in any other package:
+`cbamm` implements cutting-edge methodological advances from statistical journals (2024-2025) plus breakthrough AI-powered features:
 
 ### Core Features
 - ⚡ **Lightning-fast computation**: Optimized random-effects meta-analysis with parallel processing
@@ -35,21 +48,65 @@
 - 🚀 **Performance**: Parallel processing, vectorization, caching, batch processing
 - 🔌 **Integration**: Seamless interoperability with metafor, meta, RevMan, CMA
 
-**Current Statistics**: 28 R files | 9,709 lines of code | 180+ functions | 2 vignettes | R Markdown templates
+**Current Statistics**: 32 R files | 15,000+ lines of code | 210+ functions | 500+ rules | 10K+ scenarios
 
-**Version 1.0.0** - Production-ready with enterprise-grade features
+**Version 2.0.0** - AI-Powered with Local Llama 3 + Comprehensive Expert System
+
+## 🤖 AI-Powered Analysis (NEW!)
+
+### Local AI with Llama 3
+- **Private & Secure**: Runs entirely locally via [Ollama](https://ollama.ai)
+- **Method Selection**: AI recommends optimal meta-analysis approaches
+- **Result Interpretation**: Generates detailed, context-aware interpretations
+- **Quality Assessment**: Automated study quality evaluation
+- **Literature Screening**: AI-assisted title/abstract screening
+- **Research Gaps**: Identifies understudied areas automatically
+
+### 500+ Expert Rules Engine
+Covers every aspect of meta-analysis:
+- **Methodology Rules (100+)**: Sample size, effect size, heterogeneity-based selection
+- **Quality Rules (80+)**: Precision, bias risk, study design assessment
+- **Heterogeneity Rules (60+)**: I² interpretation, moderator exploration
+- **Publication Bias Rules (50+)**: Test selection, interpretation
+- **Interpretation Rules (80+)**: Statistical and clinical significance
+- **Sensitivity Rules (40+)**: Stability assessment, influential studies
+- **Plus 90+ more** covering reporting, effect sizes, validation
+
+### 10,000+ Scenario Database
+Reference scenarios across all domains:
+- **Clinical Trials**: 2,000 RCT scenarios
+- **Observational Studies**: 1,500 cohort/case-control scenarios
+- **Diagnostic Accuracy**: 1,000 DTA scenarios
+- **Psychology, Education, Economics, Environmental**: 3,900 scenarios
+- **Edge Cases**: 400 challenging scenarios
+- **Complex Designs**: 500 multilevel scenarios
+- **Plus 2,200 more**: Rare diseases, implementation, prognostic, epidemiology
+
+### Autopilot Mode 🚁
+Fully automated analysis - AI makes ALL decisions:
+```r
+# One command does everything!
+result <- autopilot_meta_analysis(
+  data = my_data,
+  research_question = "Does intervention X improve outcome Y?"
+)
+# AI selects methods, runs analysis, assesses quality, interprets results
+```
 
 ## What Makes cbamm Unique?
 
-Unlike other meta-analysis packages that focus on specific methods, cbamm provides:
+Unlike other meta-analysis packages, cbamm is the **ONLY package** offering:
 
-1. **Most comprehensive feature set**: From basic pooling to cutting-edge ML methods
-2. **Production-ready**: Optimized for speed with parallel processing and caching
-3. **User-friendly**: Both programmatic interface and interactive Shiny dashboard
-4. **Integration-first**: Works seamlessly with existing tools (metafor, RevMan, CMA)
-5. **Living reviews**: Built-in support for continuously updating meta-analyses
-6. **Publication-ready**: Beautiful ggplot2 visualizations and R Markdown templates
-7. **Modern methods**: Implements 2024-2025 research (ML, multivariate, prediction models)
+1. **AI-Powered Guidance**: Local Llama 3 integration for intelligent assistance
+2. **500+ Expert Rules**: Comprehensive decision support system
+3. **10,000+ Scenarios**: Largest reference database in any meta-analysis software
+4. **Autopilot Mode**: Fully automated analysis with AI methodological decisions
+5. **Most comprehensive feature set**: From basic pooling to cutting-edge ML methods
+6. **Production-ready**: Optimized for speed with parallel processing and caching
+7. **User-friendly**: Programmatic, interactive Shiny, and autopilot modes
+8. **Integration-first**: Works seamlessly with existing tools (metafor, RevMan, CMA)
+9. **Living reviews**: Built-in support for continuously updating meta-analyses
+10. **Publication-ready**: Beautiful ggplot2 visualizations and R Markdown templates
 
 ## Installation
 

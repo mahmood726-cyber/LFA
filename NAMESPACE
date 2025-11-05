@@ -35,6 +35,9 @@ S3method(print,prediction_model)
 S3method(print,parallel_bootstrap_ma)
 S3method(print,living_ma)
 S3method(print,sequential_ma)
+S3method(print,rules_result)
+S3method(print,intelligent_cbamm)
+S3method(print,scenario_stats)
 S3method(summary,cbamm)
 
 # Core Meta-Analysis
@@ -210,6 +213,32 @@ export(gg_labbe_plot)
 export(gg_cumulative_plot)
 export(gg_gosh_plot)
 export(gg_metareg_plot)
+
+# AI Integration (Local Ollama)
+export(init_llm)
+export(ai_method_selection)
+export(ai_interpret_results)
+export(ai_quality_assessment)
+export(ai_literature_screening)
+export(ai_data_extraction)
+export(ai_research_gaps)
+
+# Rules Engine (500+ Rules)
+export(init_rules_engine)
+export(apply_rules)
+
+# Scenario Database (10,000+ Scenarios)
+export(init_scenario_database)
+export(find_scenarios)
+export(scenario_statistics)
+
+# Intelligent Wrappers (AI + Rules Integration)
+export(intelligent_cbamm)
+export(intelligent_publication_bias)
+export(intelligent_sensitivity)
+export(intelligent_nma)
+export(intelligent_quality_assessment)
+export(autopilot_meta_analysis)
 
 # Imports
 import(graphics)
