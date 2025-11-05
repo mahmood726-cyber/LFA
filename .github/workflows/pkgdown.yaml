@@ -5,7 +5,7 @@ name: pkgdown
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, claude/repo-review-improvements-011CUpqXNxQuCtJqydP1bYvN]
   pull_request:
     branches: [main, master]
   release:
