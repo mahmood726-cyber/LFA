@@ -1,0 +1,50 @@
+# Codecov Configuration for LFA Package
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+        base: auto
+        informational: false
+        if_not_found: success
+
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        base: auto
+        informational: true
+        if_not_found: success
+
+comment:
+  layout: "header, diff, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+github_checks:
+  annotations: true
+
+ignore:
+  - "tests"
+  - "inst"
+  - "man"
+  - "vignettes"
+  - "data-raw"
+  - "docs"
+  - "**/*.Rd"
+  - "**/*.md"
+
+flags:
+  unittests:
+    paths:
+      - R/
+    carryforward: true
