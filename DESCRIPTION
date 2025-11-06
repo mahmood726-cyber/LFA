@@ -21,7 +21,7 @@ Description: The most comprehensive and cutting-edge meta-analysis system availa
     downloads. Over 28,000 lines implementing 60+ meta-analytic methods.
 License: GPL (>= 3)
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Depends: R (>= 3.5.0)
 Imports:
     stats,
