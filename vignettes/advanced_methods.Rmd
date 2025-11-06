@@ -1,0 +1,387 @@
+---
+title: "Advanced Meta-Analysis Methods"
+author: "Mahmood Ahmad"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Advanced Meta-Analysis Methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Introduction
+
+This vignette covers advanced meta-analysis techniques available in cbamm:
+
+1. Network Meta-Analysis
+2. Bayesian Meta-Analysis
+3. Individual Participant Data (IPD) Meta-Analysis
+4. Dose-Response Meta-Analysis
+5. Machine Learning Methods
+6. Multivariate Meta-Analysis
+
+## 1. Network Meta-Analysis
+
+Network meta-analysis (NMA) allows simultaneous comparison of multiple interventions.
+
+### Basic NMA
+
+```{r eval=FALSE}
+# Prepare network data
+# Each row is a treatment arm within a study
+nma_data <- data.frame(
+  study = c(1, 1, 2, 2, 3, 3, 4, 4, 4),
+  treatment = c("A", "B", "A", "C", "B", "C", "A", "B", "C"),
+  effect = c(0, 0.5, 0, 0.8, 0, 0.3, 0, 0.6, 0.7),
+  se = c(0.1, 0.15, 0.1, 0.2, 0.12, 0.18, 0.15, 0.18, 0.20),
+  baseline = c("A", "A", "A", "A", "B", "B", "A", "A", "A")
+)
+
+# Run network meta-analysis
+nma_result <- network_meta_analysis(nma_data, reference = "A")
+print(nma_result)
+
+# Visualize network structure
+plot_network(nma_result)
+
+# Forest plot of all comparisons vs reference
+forest_plot_nma(nma_result)
+
+# Rank treatments
+rankings <- rank_treatments(nma_result, higher_better = TRUE)
+print(rankings)
+
+# Test for inconsistency
+inconsistency <- test_inconsistency(nma_result, nma_data)
+print(inconsistency)
+```
+
+## 2. Bayesian Meta-Analysis
+
+Bayesian methods provide full posterior distributions and natural interpretation.
+
+### Basic Bayesian MA
+
+```{r eval=FALSE}
+# Bayesian random-effects meta-analysis
+bayes_result <- bayesian_ma(
+  data,
+  n_iter = 10000,
+  n_burn = 2000,
+  thin = 5,
+  prior_mean = 0,
+  prior_sd = 10
+)
+
+print(bayes_result)
+
+# Plot posterior distributions
+plot(bayes_result)
+
+# Calculate Bayes factor
+bf <- bayes_factor_ma(bayes_result, null_value = 0)
+print(bf)
+```
+
+### Bayesian Meta-Regression
+
+```{r eval=FALSE}
+data$year <- 2010:2019
+
+bayes_metareg <- bayesian_metareg(
+  data,
+  formula = ~ year,
+  n_iter = 10000
+)
+
+print(bayes_metareg)
+```
+
+### Posterior Predictive Checks
+
+```{r eval=FALSE}
+# Check model fit
+ppc_result <- posterior_predictive_check(bayes_result)
+plot(ppc_result)
+```
+
+## 3. Individual Participant Data (IPD) Meta-Analysis
+
+IPD meta-analysis uses individual-level data rather than aggregate summaries.
+
+### One-Stage IPD
+
+```{r eval=FALSE}
+# IPD data: one row per participant
+ipd_data <- data.frame(
+  study = rep(1:5, each = 100),
+  participant_id = 1:500,
+  outcome = rnorm(500, 50, 10),
+  treatment = rep(c(0, 1), 250),
+  age = rnorm(500, 45, 12),
+  sex = sample(c("M", "F"), 500, replace = TRUE)
+)
+
+# One-stage analysis
+ipd_one <- ipd_onestage(
+  data = ipd_data,
+  outcome_var = "outcome",
+  treatment_var = "treatment",
+  covariates = c("age", "sex")
+)
+
+print(ipd_one)
+```
+
+### Two-Stage IPD
+
+```{r eval=FALSE}
+# Two-stage: analyze each study, then pool
+ipd_two <- ipd_twostage(
+  data = ipd_data,
+  outcome_var = "outcome",
+  treatment_var = "treatment",
+  covariates = c("age", "sex")
+)
+
+print(ipd_two)
+```
+
+### Treatment-Covariate Interactions
+
+```{r eval=FALSE}
+# Test for effect modification
+interaction <- ipd_interaction_analysis(
+  data = ipd_data,
+  outcome_var = "outcome",
+  treatment_var = "treatment",
+  moderator = "age"
+)
+
+print(interaction)
+```
+
+## 4. Dose-Response Meta-Analysis
+
+Model the relationship between dose and effect.
+
+### Linear and Non-Linear Models
+
+```{r eval=FALSE}
+# Dose-response data
+dr_data <- data.frame(
+  study = rep(1:10, each = 3),
+  dose = rep(c(0, 10, 20), 10),
+  effect = c(...),  # Effect at each dose level
+  se = c(...)
+)
+
+# Linear model
+dr_linear <- dose_response_ma(dr_data, model = "linear")
+print(dr_linear)
+
+# Quadratic model
+dr_quad <- dose_response_ma(dr_data, model = "quadratic")
+
+# Restricted cubic spline
+dr_spline <- dose_response_ma(dr_data, model = "restricted_spline", knots = 3)
+
+# Compare models
+plot_dose_response(dr_linear)
+plot_dose_response(dr_spline)
+
+# Test for non-linearity
+test_nonlinearity(dr_spline, dr_data)
+
+# Calculate ED50
+ed50 <- calculate_ed50(dr_spline)
+print(ed50)
+```
+
+## 5. Machine Learning Methods
+
+### Random Forest Meta-Analysis
+
+```{r eval=FALSE}
+# Add multiple study characteristics
+data$year <- 2010:2019
+data$sample_size <- sample(50:500, 10)
+data$quality <- sample(1:10, 10, replace = TRUE)
+data$country <- sample(c("USA", "UK", "EU"), 10, replace = TRUE)
+
+# Random forest to model heterogeneity
+rf_result <- rf_meta_analysis(
+  data,
+  predictors = c("year", "sample_size", "quality"),
+  n_trees = 500
+)
+
+print(rf_result)
+
+# Variable importance
+print(rf_result$importance)
+print(rf_result$heterogeneity_explained)
+```
+
+### Neural Network Meta-Analysis
+
+```{r eval=FALSE}
+# Neural network for complex non-linear relationships
+nn_result <- nn_meta_analysis(
+  data,
+  predictors = c("year", "quality"),
+  hidden_units = 5,
+  n_epochs = 1000
+)
+
+print(nn_result)
+print(nn_result$r_squared)
+```
+
+### Automated Outlier Detection
+
+```{r eval=FALSE}
+# Isolation forest for outlier detection
+outliers <- detect_outliers_ml(data, contamination = 0.1)
+print(outliers)
+
+# Remove outliers and reanalyze
+data_clean <- data[!outliers$outliers, ]
+result_clean <- cbamm_fast(data_clean)
+```
+
+### Ensemble Methods
+
+```{r eval=FALSE}
+# Combine multiple methods
+ensemble_result <- ensemble_meta_analysis(
+  data,
+  methods = c("DL", "REML", "PM", "ML")
+)
+
+print(ensemble_result)
+```
+
+## 6. Multivariate Meta-Analysis
+
+Jointly analyze multiple correlated outcomes.
+
+### Basic Multivariate MA
+
+```{r eval=FALSE}
+# Data with multiple outcomes per study
+mv_data <- data.frame(
+  study = rep(1:10, each = 2),
+  outcome = rep(c("outcome1", "outcome2"), 10),
+  effect = rnorm(20, 0.5, 0.2),
+  se = runif(20, 0.1, 0.3)
+)
+
+# Multivariate meta-analysis
+mv_result <- multivariate_ma(
+  mv_data,
+  correlation = 0.5  # Within-study correlation
+)
+
+print(mv_result)
+plot_mvma(mv_result)
+
+# Test difference between outcomes
+diff_test <- test_outcome_difference(mv_result, "outcome1", "outcome2")
+print(diff_test)
+```
+
+### Multivariate Meta-Regression
+
+```{r eval=FALSE}
+mv_data$year <- rep(2010:2019, each = 2)
+
+mv_metareg <- multivariate_metareg(
+  mv_data,
+  formula = ~ year,
+  correlation = 0.5
+)
+
+print(mv_metareg)
+```
+
+## Performance Optimization
+
+For large meta-analyses, use parallel processing:
+
+```{r eval=FALSE}
+# Parallel bootstrap
+parallel_boot <- parallel_bootstrap_ma(
+  data,
+  n_bootstrap = 10000,
+  n_cores = 4
+)
+
+# Parallel subgroup analysis
+data$subgroup <- sample(c("A", "B", "C"), nrow(data), replace = TRUE)
+parallel_subgroups <- parallel_subgroup_analysis(
+  data,
+  subgroup_var = "subgroup",
+  n_cores = 4
+)
+
+# Batch processing multiple meta-analyses
+data_list <- list(data1, data2, data3, ...)
+batch_results <- batch_meta_analysis(
+  data_list,
+  parallel = TRUE,
+  n_cores = 4
+)
+```
+
+## Integration with Other Packages
+
+```{r eval=FALSE}
+# Convert to metafor format
+metafor_data <- to_metafor(data)
+
+# Use metafor's advanced features
+if (require(metafor)) {
+  rma_result <- metafor::rma(yi = yi, sei = sei, data = metafor_data)
+}
+
+# Convert back to cbamm
+cbamm_result <- from_metafor(rma_result)
+
+# Use metafor diagnostics
+diagnostics <- metafor_diagnostics(
+  data,
+  diagnostics = c("influence", "gosh", "trimfill")
+)
+```
+
+## Choosing the Right Method
+
+```{r eval=FALSE}
+# Auto-select best method based on data
+recommendation <- auto_select_method(data)
+print(recommendation)
+
+# Compare multiple methods
+comparison <- compare_methods(
+  data,
+  methods = c("DL", "REML", "PM", "ML")
+)
+print(comparison)
+```
+
+## Conclusion
+
+cbamm provides state-of-the-art meta-analysis methods. Choose the appropriate
+technique based on your research question:
+
+- **Multiple treatments?** → Network meta-analysis
+- **Complex moderator relationships?** → ML methods or Bayesian models
+- **Individual-level data?** → IPD meta-analysis
+- **Dose-response relationship?** → Dose-response models
+- **Multiple outcomes?** → Multivariate meta-analysis
+- **Continuous updating?** → See `vignette("living_reviews")`

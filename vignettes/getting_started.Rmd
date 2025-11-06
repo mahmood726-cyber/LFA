@@ -1,0 +1,223 @@
+---
+title: "Getting Started with cbamm"
+author: "Mahmood Ahmad"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with cbamm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+The **cbamm** package provides comprehensive tools for conducting meta-analyses,
+from basic pooling to advanced techniques like machine learning-based methods,
+living systematic reviews, and multivariate meta-analysis.
+
+## Installation
+
+```{r eval=FALSE}
+# Install from GitHub
+devtools::install_github("mahmood726-cyber/LFA")
+
+# Load the package
+library(cbamm)
+```
+
+## Basic Meta-Analysis
+
+### Preparing Your Data
+
+cbamm requires a data frame with at least three columns:
+- `study`: Study identifier
+- `effect`: Effect size estimate (e.g., SMD, log OR, log RR)
+- `se`: Standard error of the effect size
+
+```{r eval=FALSE}
+# Example data
+data <- data.frame(
+  study = paste0("Study ", 1:10),
+  effect = c(0.5, 0.3, 0.7, 0.4, 0.6, 0.5, 0.2, 0.8, 0.4, 0.5),
+  se = c(0.15, 0.20, 0.18, 0.16, 0.14, 0.17, 0.22, 0.15, 0.19, 0.16)
+)
+```
+
+### Running a Basic Meta-Analysis
+
+```{r eval=FALSE}
+# Fast random-effects meta-analysis
+result <- cbamm_fast(data, method = "DL")
+print(result)
+
+# The result contains:
+# - estimate: Pooled effect size
+# - ci_lower, ci_upper: 95% confidence interval
+# - tau2: Between-study variance
+# - I2: Heterogeneity statistic (%)
+# - Q: Cochran's Q statistic
+# - p_value: P-value for pooled estimate
+```
+
+### Visualizing Results
+
+```{r eval=FALSE}
+# Forest plot (base graphics)
+plot(result)
+
+# Modern ggplot2 forest plot
+library(ggplot2)
+gg_forest_plot(data, result = result, show_weights = TRUE)
+
+# Funnel plot for publication bias
+gg_funnel_plot(data, result = result, show_contours = TRUE)
+```
+
+## Assessing Publication Bias
+
+```{r eval=FALSE}
+# Egger's test
+egger_result <- egger_test(data)
+print(egger_result)
+
+# PET-PEESE correction
+pet_peese_result <- pet_peese(data, method = "conditional")
+print(pet_peese_result)
+
+# Trim-and-fill
+tf_result <- trim_fill(data)
+print(tf_result)
+```
+
+## Sensitivity Analysis
+
+```{r eval=FALSE}
+# Leave-one-out analysis
+loo_result <- leave_one_out(data)
+print(loo_result)
+
+# Influence diagnostics
+influence_result <- influence_diagnostics(data)
+print(influence_result)
+
+# Baujat plot to identify outliers
+baujat_plot(data)
+```
+
+## Meta-Regression
+
+When you have study-level characteristics (moderators):
+
+```{r eval=FALSE}
+# Add moderator variables
+data$year <- 2010:2019
+data$quality <- sample(1:10, 10, replace = TRUE)
+
+# Meta-regression
+metareg_result <- meta_regression(data, formula = ~ year + quality)
+print(metareg_result)
+
+# Visualize relationship
+gg_metareg_plot(data, moderator = "year", show_bubble = TRUE)
+```
+
+## Subgroup Analysis
+
+```{r eval=FALSE}
+# Add subgroup variable
+data$intervention_type <- rep(c("Drug A", "Drug B"), 5)
+
+# Subgroup meta-analysis
+subgroup_result <- subgroup_analysis(data, subgroup_var = "intervention_type")
+print(subgroup_result)
+```
+
+## Cumulative Meta-Analysis
+
+Track how evidence accumulates over time:
+
+```{r eval=FALSE}
+# Cumulative meta-analysis ordered by year
+cumulative_result <- cumulative_meta_analysis(data, order_by = "year")
+print(cumulative_result)
+
+# Plot evolution of evidence
+gg_cumulative_plot(cumulative_result)
+```
+
+## Effect Size Conversions
+
+cbamm provides 17 functions for converting between effect size metrics:
+
+```{r eval=FALSE}
+# Convert Cohen's d to Hedges' g
+g <- d_to_g(d = 0.5, n1 = 50, n2 = 50)
+
+# Convert odds ratio to risk ratio (given baseline risk)
+rr <- or_to_rr(or = 2.0, baseline_risk = 0.3)
+
+# Convert correlation to Cohen's d
+d <- r_to_d(r = 0.3)
+
+# Fisher z-transformation for correlations
+z <- fisher_z(r = 0.3)
+```
+
+## Prediction Intervals
+
+Go beyond confidence intervals to predict effects in new studies:
+
+```{r eval=FALSE}
+# Calculate prediction interval
+pi_result <- prediction_interval(data, method = "REML")
+print(pi_result)
+
+# Prediction intervals account for heterogeneity
+# CI tells you about the average effect
+# PI tells you the range for a new study
+```
+
+## Next Steps
+
+- See `vignette("advanced_methods")` for network meta-analysis, Bayesian methods, and ML approaches
+- See `vignette("living_reviews")` for maintaining living systematic reviews
+- See `vignette("multivariate")` for analyzing multiple correlated outcomes
+- See `vignette("diagnostic_accuracy")` for diagnostic test accuracy meta-analysis
+
+## Quick Reference
+
+| Task | Function |
+|------|----------|
+| Basic meta-analysis | `cbamm_fast()` |
+| Publication bias | `egger_test()`, `pet_peese()`, `trim_fill()` |
+| Sensitivity analysis | `leave_one_out()`, `influence_diagnostics()` |
+| Meta-regression | `meta_regression()` |
+| Subgroup analysis | `subgroup_analysis()` |
+| Cumulative MA | `cumulative_meta_analysis()` |
+| Prediction intervals | `prediction_interval()` |
+| Forest plots | `gg_forest_plot()` |
+| Funnel plots | `gg_funnel_plot()` |
+| Interactive dashboard | `launch_meta_dashboard()` |
+
+## Getting Help
+
+```{r eval=FALSE}
+# Function documentation
+?cbamm_fast
+?gg_forest_plot
+
+# Package documentation
+help(package = "cbamm")
+
+# Report issues
+# https://github.com/mahmood726-cyber/LFA/issues
+```

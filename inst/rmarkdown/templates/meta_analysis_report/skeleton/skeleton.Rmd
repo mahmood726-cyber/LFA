@@ -1,0 +1,324 @@
+---
+title: "Meta-Analysis Report"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+
+library(cbamm)
+library(ggplot2)
+library(knitr)
+```
+
+# Executive Summary
+
+<!-- Briefly summarize the research question, methods, and key findings -->
+
+**Research Question:** [Describe the research question]
+
+**Main Finding:** [Summarize the pooled effect]
+
+**Recommendation:** [Provide actionable recommendation]
+
+---
+
+# 1. Introduction
+
+## 1.1 Background
+
+[Provide background on the topic and rationale for the meta-analysis]
+
+## 1.2 Research Question
+
+[Clearly state the research question using PICO framework if applicable:
+- **P**opulation
+- **I**ntervention
+- **C**omparator
+- **O**utcome]
+
+## 1.3 Objectives
+
+The objectives of this meta-analysis are to:
+
+1. [Objective 1]
+2. [Objective 2]
+3. [Objective 3]
+
+---
+
+# 2. Methods
+
+## 2.1 Search Strategy
+
+[Describe the search strategy, databases searched, and search terms]
+
+## 2.2 Inclusion/Exclusion Criteria
+
+**Inclusion Criteria:**
+- [Criterion 1]
+- [Criterion 2]
+
+**Exclusion Criteria:**
+- [Criterion 1]
+- [Criterion 2]
+
+## 2.3 Data Extraction
+
+[Describe how data was extracted from studies]
+
+## 2.4 Statistical Analysis
+
+Meta-analysis was conducted using the cbamm package in R. We used:
+
+- **Effect size measure:** [e.g., standardized mean difference, log odds ratio]
+- **Pooling method:** [e.g., DerSimonian-Laird random-effects]
+- **Heterogeneity assessment:** I² statistic, τ²
+- **Publication bias assessment:** Egger's test, funnel plot
+- **Sensitivity analysis:** Leave-one-out analysis
+
+---
+
+# 3. Results
+
+## 3.1 Study Selection
+
+```{r prisma, echo=FALSE}
+# PRISMA flow diagram would go here
+cat("Records identified: [N]
+Records after deduplication: [N]
+Full-text articles assessed: [N]
+Studies included in meta-analysis: [N]")
+```
+
+## 3.2 Study Characteristics
+
+```{r data-loading}
+# Load your data
+data <- data.frame(
+  study = paste0("Study ", 1:10),
+  effect = c(0.5, 0.3, 0.7, 0.4, 0.6, 0.5, 0.2, 0.8, 0.4, 0.5),
+  se = c(0.15, 0.20, 0.18, 0.16, 0.14, 0.17, 0.22, 0.15, 0.19, 0.16),
+  year = 2014:2023,
+  sample_size = sample(50:200, 10),
+  quality = sample(5:10, 10, replace = TRUE)
+)
+```
+
+```{r study-table}
+# Table of included studies
+kable(data, caption = "Characteristics of Included Studies")
+```
+
+**Total Studies:** `r nrow(data)`
+**Total Participants:** `r sum(data$sample_size)` (if applicable)
+**Publication Years:** `r min(data$year)` to `r max(data$year)`
+
+## 3.3 Main Meta-Analysis
+
+```{r main-analysis}
+# Conduct main meta-analysis
+result <- cbamm_fast(data, method = "REML")
+print(result)
+```
+
+### Key Findings
+
+- **Pooled Effect Size:** `r sprintf("%.3f", result$estimate)`
+  (95% CI: `r sprintf("%.3f", result$ci_lower)` to `r sprintf("%.3f", result$ci_upper)`)
+- **P-value:** `r sprintf("%.4f", result$p_value)`
+- **Heterogeneity (I²):** `r sprintf("%.1f%%", result$I2)`
+- **Between-study variance (τ²):** `r sprintf("%.3f", result$tau2)`
+
+**Interpretation:** [Interpret the findings in context]
+
+### Forest Plot
+
+```{r forest-plot, fig.height=7}
+# Create forest plot
+gg_forest_plot(data, result = result, show_weights = TRUE,
+               title = "Forest Plot of Effect Sizes")
+```
+
+## 3.4 Heterogeneity Assessment
+
+```{r heterogeneity}
+cat(sprintf("Cochran's Q = %.2f (df = %d, p = %.4f)\n",
+            result$Q, result$k - 1,
+            1 - pchisq(result$Q, result$k - 1)))
+cat(sprintf("I² = %.1f%% (95%% CI: [calculate])\n", result$I2))
+cat(sprintf("τ² = %.3f\n", result$tau2))
+```
+
+**Interpretation:**
+[Interpret heterogeneity level:
+- I² < 25%: Low heterogeneity
+- I² 25-75%: Moderate heterogeneity
+- I² > 75%: High heterogeneity]
+
+## 3.5 Publication Bias
+
+### Funnel Plot
+
+```{r funnel-plot}
+gg_funnel_plot(data, result = result, show_contours = TRUE,
+               title = "Funnel Plot for Publication Bias Assessment")
+```
+
+### Statistical Tests
+
+```{r publication-bias}
+# Egger's test
+egger <- egger_test(data)
+cat(sprintf("Egger's test: intercept = %.3f, p = %.4f\n",
+            egger$intercept, egger$p_value))
+
+# PET-PEESE
+pet_peese_result <- pet_peese(data)
+print(pet_peese_result)
+
+# Trim and fill
+tf <- trim_fill(data)
+cat(sprintf("\nTrim-and-fill: %d studies imputed\n", tf$n_imputed))
+```
+
+**Interpretation:** [Interpret publication bias assessment]
+
+## 3.6 Sensitivity Analysis
+
+### Leave-One-Out Analysis
+
+```{r loo-analysis}
+loo <- leave_one_out(data, method = "REML")
+kable(loo, caption = "Leave-One-Out Sensitivity Analysis")
+```
+
+### Influence Diagnostics
+
+```{r influence}
+influence <- influence_diagnostics(data)
+print(influence)
+
+# Baujat plot
+baujat_plot(data, main = "Baujat Plot: Heterogeneity vs Influence")
+```
+
+## 3.7 Subgroup Analyses
+
+```{r subgroup, eval=FALSE}
+# If you have subgroups
+data$subgroup <- sample(c("Subgroup A", "Subgroup B"), nrow(data), replace = TRUE)
+subgroup_result <- subgroup_analysis(data, subgroup_var = "subgroup")
+print(subgroup_result)
+```
+
+## 3.8 Meta-Regression
+
+```{r metaregression, eval=FALSE}
+# If you have moderators
+metareg <- meta_regression(data, formula = ~ year + quality)
+print(metareg)
+
+# Visualize
+gg_metareg_plot(data, moderator = "year", show_bubble = TRUE)
+```
+
+## 3.9 Prediction Interval
+
+```{r prediction-interval}
+# Calculate prediction interval
+pi <- prediction_interval(data, method = "REML")
+cat(sprintf("Prediction Interval: %.3f to %.3f\n", pi$pi_lower, pi$pi_upper))
+cat("\nInterpretation: We expect the true effect in a new study to fall
+within this range 95% of the time.\n")
+```
+
+---
+
+# 4. Discussion
+
+## 4.1 Summary of Findings
+
+[Summarize the main findings]
+
+## 4.2 Comparison with Previous Reviews
+
+[Compare with existing literature]
+
+## 4.3 Strengths and Limitations
+
+**Strengths:**
+- [Strength 1]
+- [Strength 2]
+
+**Limitations:**
+- [Limitation 1]
+- [Limitation 2]
+
+## 4.4 Implications
+
+**For Practice:**
+[Implications for clinical practice or policy]
+
+**For Research:**
+[Implications for future research]
+
+---
+
+# 5. Conclusions
+
+[Provide clear, evidence-based conclusions]
+
+---
+
+# 6. References
+
+[Add references here or use bibliography]
+
+---
+
+# Appendices
+
+## Appendix A: Search Strategy
+
+[Detailed search strategy]
+
+## Appendix B: Quality Assessment
+
+```{r quality-assessment, eval=FALSE}
+# Quality assessment table
+kable(data[, c("study", "quality")],
+      caption = "Quality Assessment Scores")
+```
+
+## Appendix C: Additional Analyses
+
+```{r additional-analyses, eval=FALSE}
+# Any additional analyses
+```
+
+---
+
+## Session Information
+
+```{r session-info}
+sessionInfo()
+```
+
+---
+
+**Report generated:** `r Sys.time()`
+**Package version:** cbamm `r packageVersion("cbamm")`

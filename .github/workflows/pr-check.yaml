@@ -1,0 +1,105 @@
+# Fast PR Check Workflow
+# Provides quick feedback on pull requests without full multi-platform testing
+
+name: PR-check
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quick-check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
+            libfreetype6-dev \
+            libpng-dev \
+            libtiff5-dev \
+            libjpeg-dev \
+            cmake
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::devtools
+            any::testthat
+            any::lintr
+            any::styler
+          needs: check
+
+      - name: Run tests
+        run: |
+          devtools::load_all()
+          devtools::test()
+        shell: Rscript {0}
+
+      - name: Check code style
+        run: |
+          # Check for style issues (non-blocking)
+          styler::style_pkg(dry = "on")
+        shell: Rscript {0}
+        continue-on-error: true
+
+      - name: Run lintr
+        run: |
+          # Lint R code (non-blocking)
+          lints <- lintr::lint_package()
+          print(lints)
+        shell: Rscript {0}
+        continue-on-error: true
+
+      - name: Comment PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Quick PR check completed. Full R-CMD-check running in parallel.'
+            })
+
+  lint-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::lintr
+            any::rcmdcheck
+
+      - name: Lint package
+        run: lintr::lint_package()
+        shell: Rscript {0}
+        continue-on-error: true

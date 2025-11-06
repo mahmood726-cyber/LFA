@@ -1,0 +1,56 @@
+# Git attributes for consistent behavior across platforms
+
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# R source files
+*.R text eol=lf
+*.r text eol=lf
+*.Rmd text eol=lf
+*.rmd text eol=lf
+*.Rnw text eol=lf
+*.Rproj text eol=lf
+
+# Data files
+*.csv text eol=lf
+*.tsv text eol=lf
+*.txt text eol=lf
+*.dat text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.Rd text eol=lf
+*.tex text eol=lf
+
+# Configuration files
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.RData binary
+*.rda binary
+*.rds binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.exe binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
