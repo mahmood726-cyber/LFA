@@ -5,7 +5,7 @@ name: R-CMD-check
 
 on:
   push:
-    branches: [main, master, develop, claude/normalize-line-endings-011CUqQ8ThrrM5uygs4pUcwR]
+    branches: [main, master, develop, claude/fix-r-dependencies-setup-011CUqetA6Zfj2wcLoh7Ab8U]
   pull_request:
     branches: [main, master, develop]
   schedule:
