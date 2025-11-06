@@ -1,0 +1,110 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+
+name: R-CMD-check
+
+on:
+  push:
+    branches: [main, master, develop, claude/normalize-line-endings-011CUqQ8ThrrM5uygs4pUcwR]
+  pull_request:
+    branches: [main, master, develop]
+  schedule:
+    # Run daily at 00:00 UTC to catch issues with dependencies
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Test on Ubuntu with multiple R versions
+          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,   r: 'release'}
+          - {os: ubuntu-latest,   r: 'oldrel-1'}
+
+          # Test on macOS
+          - {os: macos-latest,    r: 'release'}
+
+          # Test on Windows
+          - {os: windows-latest,  r: 'release'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # Increase timeout for package installation
+      _R_CHECK_FORCE_SUGGESTS_: false
+      # Allow for more lenient checking on CRAN incoming
+      _R_CHECK_CRAN_INCOMING_REMOTE_: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      # Install system dependencies for R packages
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
+            libfreetype6-dev \
+            libpng-dev \
+            libtiff5-dev \
+            libjpeg-dev \
+            libgit2-dev \
+            libglu1-mesa-dev \
+            libgmp3-dev \
+            libmpfr-dev \
+            libgdal-dev \
+            libproj-dev \
+            cmake
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cairo
+          brew install harfbuzz
+          brew install fribidi
+          brew install gdal
+          brew install proj
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      # Check package structure and run tests
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+          error-on: '"error"'
+          args: 'c("--no-manual", "--as-cran", "--no-multiarch")'
+          build_args: 'c("--no-manual", "--compact-vignettes=gs+qpdf")'
+
+      # Upload check results for debugging
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          path: check
